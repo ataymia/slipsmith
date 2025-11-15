@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal - $lip$mith</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">$lip$mith</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plans.html">Plans</a></li>
+                <li><a href="portal.html" class="active">Portal</a></li>
+                <li id="admin-link" style="display: none;"><a href="admin.html">Admin</a></li>
+                <li><a href="#" id="logout-btn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="portal-section">
+            <div class="container">
+                <div id="auth-required" class="auth-notice">
+                    <h2>🔒 Authentication Required</h2>
+                    <p>Please <a href="login.html">login</a> to access the portal.</p>
+                </div>
+
+                <div id="portal-content" style="display: none;">
+                    <div class="portal-header">
+                        <div>
+                            <h1>Member Portal</h1>
+                            <p id="user-info" class="user-info"></p>
+                        </div>
+                        <div class="tier-badge" id="tier-badge"></div>
+                    </div>
+
+                    <div class="portal-grid">
+                        <!-- Content Feed -->
+                        <div class="content-section">
+                            <h2>Content Feed</h2>
+                            <div id="posts-container" class="posts-container">
+                                <div class="loading">Loading posts...</div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Section (Pro/VIP only) -->
+                        <div class="chat-section" id="chat-section" style="display: none;">
+                            <div class="chat-header">
+                                <h3>💬 Member Chat</h3>
+                                <p class="chat-status" id="chat-status">Real-time</p>
+                            </div>
+                            <div class="chat-messages" id="chat-messages">
+                                <!-- Messages will be loaded here -->
+                            </div>
+                            <form id="chat-form" class="chat-input-form">
+                                <input type="text" id="chat-input" placeholder="Type a message..." required>
+                                <button type="submit" class="btn-send">Send</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 $lip$mith. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let currentUser = null;
+        let currentUserData = null;
+
+        // Initialize portal
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                currentUser = await getCurrentUser();
+                if (currentUser) {
+                    currentUserData = await getUserData(currentUser.uid);
+                    showPortalContent();
+                } else {
+                    showAuthRequired();
+                }
+            } catch (error) {
+                console.error('Portal initialization error:', error);
+                showAuthRequired();
+            }
+        });
+
+        function showAuthRequired() {
+            document.getElementById('auth-required').style.display = 'block';
+            document.getElementById('portal-content').style.display = 'none';
+        }
+
+        function showPortalContent() {
+            document.getElementById('auth-required').style.display = 'none';
+            document.getElementById('portal-content').style.display = 'block';
+
+            // Display user info
+            const userInfo = document.getElementById('user-info');
+            const tierBadge = document.getElementById('tier-badge');
+            const tier = currentUserData?.tier || 'starter';
+            
+            userInfo.textContent = `${currentUser.email} | ${tier.toUpperCase()} Member`;
+            tierBadge.textContent = tier.toUpperCase();
+            tierBadge.className = `tier-badge tier-${tier.toLowerCase()}`;
+
+            // Show admin link if user is admin
+            if (currentUserData?.role === 'admin') {
+                document.getElementById('admin-link').style.display = 'block';
+            }
+
+            // Show chat for Pro and VIP members
+            if (tier === 'pro' || tier === 'vip') {
+                document.getElementById('chat-section').style.display = 'block';
+                initializeChat();
+            }
+
+            // Load posts based on tier
+            loadPosts(tier);
+        }
+
+        async function loadPosts(userTier) {
+            const container = document.getElementById('posts-container');
+            try {
+                const posts = await getPostsByTier(userTier);
+                
+                if (posts.length === 0) {
+                    container.innerHTML = '<p class="no-content">No posts available yet. Check back soon!</p>';
+                    return;
+                }
+
+                container.innerHTML = posts.map(post => `
+                    <div class="post-card">
+                        <div class="post-header">
+                            <h3>${post.title}</h3>
+                            <span class="post-tier tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
+                        </div>
+                        <div class="post-meta">
+                            <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div class="post-content">
+                            ${post.content}
+                        </div>
+                        ${post.mediaUrl ? `
+                            <div class="post-media">
+                                ${post.mediaType?.startsWith('image') ? 
+                                    `<img src="${post.mediaUrl}" alt="${post.title}">` :
+                                    `<a href="${post.mediaUrl}" target="_blank" class="btn btn-outline btn-sm">View Attachment</a>`
+                                }
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                container.innerHTML = '<p class="error">Error loading posts. Please try again.</p>';
+            }
+        }
+
+        async function initializeChat() {
+            const messagesContainer = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+
+            // Listen for new messages
+            onChatMessages((messages) => {
+                messagesContainer.innerHTML = messages.map(msg => {
+                    const isOwn = msg.userId === currentUser.uid;
+                    return `
+                        <div class="chat-message ${isOwn ? 'own-message' : ''}">
+                            <div class="message-header">
+                                <span class="message-user">${msg.userName || 'Anonymous'}</span>
+                                <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div class="message-text">${msg.text}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+
+            // Handle message sending
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (!text) return;
+
+                try {
+                    await sendChatMessage({
+                        text,
+                        userId: currentUser.uid,
+                        userName: currentUser.email.split('@')[0],
+                        timestamp: Date.now()
+                    });
+                    chatInput.value = '';
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Failed to send message. Please try again.');
+                }
+            });
+        }
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await logoutUser();
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error logging out. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

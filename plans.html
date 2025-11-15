@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans - $lip$mith</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">$lip$mith</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plans.html" class="active">Plans</a></li>
+                <li><a href="portal.html">Portal</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="plans-hero">
+            <div class="container">
+                <h1>Choose Your Plan</h1>
+                <p>Select the tier that's right for you</p>
+            </div>
+        </section>
+
+        <section class="pricing">
+            <div class="container">
+                <div class="plans-grid">
+                    <div class="plan-card starter">
+                        <div class="plan-header">
+                            <h3>Starter</h3>
+                            <div class="price">$9.99<span>/month</span></div>
+                        </div>
+                        <ul class="features">
+                            <li>✓ Basic content access</li>
+                            <li>✓ Community posts</li>
+                            <li>✓ Monthly updates</li>
+                            <li>✗ Real-time chat</li>
+                            <li>✗ Premium content</li>
+                            <li>✗ VIP exclusives</li>
+                        </ul>
+                        <a href="#payment-info" class="btn btn-outline">Get Started</a>
+                    </div>
+
+                    <div class="plan-card pro featured">
+                        <div class="badge">POPULAR</div>
+                        <div class="plan-header">
+                            <h3>Pro</h3>
+                            <div class="price">$24.99<span>/month</span></div>
+                        </div>
+                        <ul class="features">
+                            <li>✓ All Starter features</li>
+                            <li>✓ Premium content access</li>
+                            <li>✓ Real-time chat</li>
+                            <li>✓ Weekly updates</li>
+                            <li>✓ Priority support</li>
+                            <li>✗ VIP exclusives</li>
+                        </ul>
+                        <a href="#payment-info" class="btn btn-primary">Get Started</a>
+                    </div>
+
+                    <div class="plan-card vip">
+                        <div class="plan-header">
+                            <h3>VIP</h3>
+                            <div class="price">$49.99<span>/month</span></div>
+                        </div>
+                        <ul class="features">
+                            <li>✓ All Pro features</li>
+                            <li>✓ VIP exclusive content</li>
+                            <li>✓ Daily updates</li>
+                            <li>✓ Direct messaging</li>
+                            <li>✓ Early access</li>
+                            <li>✓ Special perks</li>
+                        </ul>
+                        <a href="#payment-info" class="btn btn-primary">Get Started</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="payment-info" class="payment-info">
+            <div class="container">
+                <h2>Payment Information</h2>
+                <p class="payment-notice">We accept payments through multiple platforms. Please choose your preferred method below.</p>
+                
+                <div class="payment-methods">
+                    <div class="payment-card">
+                        <div class="payment-icon paypal">💳</div>
+                        <h3>PayPal</h3>
+                        <p class="payment-id">payments@slipsmith.example</p>
+                        <p class="payment-note">Send payment to the email above</p>
+                    </div>
+
+                    <div class="payment-card">
+                        <div class="payment-icon cashapp">💵</div>
+                        <h3>Cash App</h3>
+                        <p class="payment-id">$SlipSmith</p>
+                        <p class="payment-note">Use the cashtag above</p>
+                    </div>
+
+                    <div class="payment-card">
+                        <div class="payment-icon venmo">📱</div>
+                        <h3>Venmo</h3>
+                        <p class="payment-id">@SlipSmith</p>
+                        <p class="payment-note">Search for our username</p>
+                    </div>
+
+                    <div class="payment-card">
+                        <div class="payment-icon chime">🏦</div>
+                        <h3>Chime</h3>
+                        <p class="payment-id">payments@slipsmith.example</p>
+                        <p class="payment-note">Send via email</p>
+                    </div>
+                </div>
+
+                <div class="important-notice">
+                    <h3>⚠️ Important: Include Your Contact Info</h3>
+                    <p class="notice-text">
+                        <strong>Please include the following in your payment note/memo:</strong>
+                    </p>
+                    <ul class="notice-list">
+                        <li><strong>Your phone number</strong> (for account verification)</li>
+                        <li><strong>Your email address</strong> (for login credentials)</li>
+                        <li><strong>Chosen plan</strong> (Starter, Pro, or VIP)</li>
+                    </ul>
+                    <p class="notice-example">
+                        Example: "John Doe - 555-1234 - john@email.com - Pro Plan"
+                    </p>
+                    <p class="notice-footer">
+                        After payment verification, you will receive login credentials within 24 hours. Check your email (including spam folder).
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 $lip$mith. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

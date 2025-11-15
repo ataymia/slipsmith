@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - $lip$mith</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">$lip$mith</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plans.html">Plans</a></li>
+                <li><a href="portal.html">Portal</a></li>
+                <li><a href="login.html" class="active">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="login-section">
+            <div class="container">
+                <div class="login-container">
+                    <div class="login-card">
+                        <h1>Welcome Back</h1>
+                        <p class="subtitle">Login to access your content</p>
+
+                        <div id="login-error" class="error-message" style="display: none;"></div>
+                        <div id="login-success" class="success-message" style="display: none;"></div>
+
+                        <form id="login-form">
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" required placeholder="your@email.com">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" required placeholder="••••••••">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                                <span class="btn-text">Login</span>
+                                <span class="btn-loading" style="display: none;">Logging in...</span>
+                            </button>
+                        </form>
+
+                        <div class="login-footer">
+                            <p>Don't have an account? <a href="plans.html">View Plans</a></p>
+                            <p><a href="#" id="reset-password">Forgot Password?</a></p>
+                        </div>
+                    </div>
+
+                    <div class="login-info">
+                        <div class="info-card">
+                            <h3>📧 New Member?</h3>
+                            <p>After subscribing and payment verification, you'll receive login credentials via email within 24 hours.</p>
+                        </div>
+                        <div class="info-card">
+                            <h3>🔐 Secure Login</h3>
+                            <p>Your account is protected with Firebase Authentication and industry-standard security practices.</p>
+                        </div>
+                        <div class="info-card">
+                            <h3>💎 Member Benefits</h3>
+                            <p>Access exclusive content, real-time chat (Pro/VIP), and community features based on your tier.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 $lip$mith. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Login form handling
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('login-btn');
+            const btnText = loginBtn.querySelector('.btn-text');
+            const btnLoading = loginBtn.querySelector('.btn-loading');
+            const errorDiv = document.getElementById('login-error');
+            const successDiv = document.getElementById('login-success');
+
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            // Show loading state
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            loginBtn.disabled = true;
+
+            try {
+                await loginUser(email, password);
+                successDiv.textContent = 'Login successful! Redirecting...';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'portal.html';
+                }, 1500);
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorDiv.style.display = 'block';
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Password reset
+        document.getElementById('reset-password').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = prompt('Enter your email address:');
+            if (email) {
+                try {
+                    await resetPassword(email);
+                    alert('Password reset email sent! Check your inbox.');
+                } catch (error) {
+                    alert('Error sending reset email: ' + error.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
