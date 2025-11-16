@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - $lip$mith</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">$lip$mith</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plans.html">Plans</a></li>
+                <li><a href="portal.html">Portal</a></li>
+                <li><a href="admin.html" class="active">Admin</a></li>
+                <li><a href="#" id="logout-btn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="admin-section">
+            <div class="container">
+                <div id="auth-required" class="auth-notice">
+                    <h2>🔒 Admin Access Required</h2>
+                    <p>You must be logged in as an admin to access this page.</p>
+                    <a href="login.html" class="btn btn-primary">Login</a>
+                </div>
+
+                <div id="admin-content" style="display: none;">
+                    <h1>Admin Dashboard</h1>
+                    
+                    <div class="admin-tabs">
+                        <button class="tab-btn active" data-tab="posts">Manage Posts</button>
+                        <button class="tab-btn" data-tab="users">Manage Users</button>
+                    </div>
+
+                    <!-- Posts Management Tab -->
+                    <div id="posts-tab" class="tab-content active">
+                        <div class="admin-grid">
+                            <!-- Create/Edit Post Form -->
+                            <div class="admin-card">
+                                <h2 id="post-form-title">Create New Post</h2>
+                                <form id="post-form" class="admin-form">
+                                    <input type="hidden" id="post-id">
+                                    
+                                    <div class="form-group">
+                                        <label for="post-title">Title *</label>
+                                        <input type="text" id="post-title" required placeholder="Post title">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="post-content">Content *</label>
+                                        <textarea id="post-content" rows="6" required placeholder="Post content"></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="post-tier">Minimum Tier *</label>
+                                        <select id="post-tier" required>
+                                            <option value="starter">Starter</option>
+                                            <option value="pro">Pro</option>
+                                            <option value="vip">VIP</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="post-media">Upload Media (optional)</label>
+                                        <input type="file" id="post-media" accept="image/*,video/*,.pdf,.doc,.docx">
+                                        <small class="form-hint">Images, videos, or documents</small>
+                                    </div>
+
+                                    <div id="current-media" class="current-media" style="display: none;">
+                                        <p>Current media: <span id="media-name"></span></p>
+                                        <button type="button" class="btn btn-sm btn-outline" id="remove-media">Remove</button>
+                                    </div>
+
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary" id="save-post-btn">
+                                            <span class="btn-text">Create Post</span>
+                                            <span class="btn-loading" style="display: none;">Saving...</span>
+                                        </button>
+                                        <button type="button" class="btn btn-outline" id="cancel-post-btn" style="display: none;">Cancel</button>
+                                    </div>
+
+                                    <div id="post-form-error" class="error-message" style="display: none;"></div>
+                                    <div id="post-form-success" class="success-message" style="display: none;"></div>
+                                </form>
+                            </div>
+
+                            <!-- Posts List -->
+                            <div class="admin-card">
+                                <h2>All Posts</h2>
+                                <div id="posts-list" class="admin-list">
+                                    <div class="loading">Loading posts...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Users Management Tab -->
+                    <div id="users-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>User Management</h2>
+                            <div class="filter-controls">
+                                <select id="tier-filter" class="filter-select">
+                                    <option value="all">All Tiers</option>
+                                    <option value="starter">Starter</option>
+                                    <option value="pro">Pro</option>
+                                    <option value="vip">VIP</option>
+                                </select>
+                            </div>
+                            <div id="users-list" class="admin-list">
+                                <div class="loading">Loading users...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 $lip$mith. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let currentUser = null;
+        let currentUserData = null;
+        let editingPostId = null;
+
+        // Initialize admin panel
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                currentUser = await getCurrentUser();
+                if (currentUser) {
+                    currentUserData = await getUserData(currentUser.uid);
+                    if (currentUserData?.role === 'admin') {
+                        showAdminContent();
+                    } else {
+                        showAuthRequired();
+                    }
+                } else {
+                    showAuthRequired();
+                }
+            } catch (error) {
+                console.error('Admin initialization error:', error);
+                showAuthRequired();
+            }
+        });
+
+        function showAuthRequired() {
+            document.getElementById('auth-required').style.display = 'block';
+            document.getElementById('admin-content').style.display = 'none';
+        }
+
+        function showAdminContent() {
+            document.getElementById('auth-required').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadPosts();
+            loadUsers();
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                
+                // Update active states
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(`${tab}-tab`).classList.add('active');
+            });
+        });
+
+        // Load all posts
+        async function loadPosts() {
+            const container = document.getElementById('posts-list');
+            try {
+                const posts = await getAllPosts();
+                
+                if (posts.length === 0) {
+                    container.innerHTML = '<p class="no-content">No posts yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = posts.map(post => `
+                    <div class="admin-item">
+                        <div class="item-content">
+                            <h3>${post.title}</h3>
+                            <p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p>
+                            <div class="item-meta">
+                                <span class="tier-badge tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
+                                <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-sm btn-outline" onclick="editPost('${post.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deletePost('${post.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                container.innerHTML = '<p class="error">Error loading posts.</p>';
+            }
+        }
+
+        // Load all users
+        async function loadUsers() {
+            const container = document.getElementById('users-list');
+            try {
+                const users = await getAllUsers();
+                displayUsers(users);
+            } catch (error) {
+                console.error('Error loading users:', error);
+                container.innerHTML = '<p class="error">Error loading users.</p>';
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('users-list');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p class="no-content">No users yet.</p>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div class="admin-item">
+                    <div class="item-content">
+                        <h3>${user.email}</h3>
+                        <div class="item-meta">
+                            <span class="tier-badge tier-${user.tier}">${user.tier.toUpperCase()}</span>
+                            ${user.role === 'admin' ? '<span class="badge-admin">ADMIN</span>' : ''}
+                            <span>📅 Joined ${new Date(user.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <select onchange="updateUserTier('${user.uid}', this.value)" class="tier-select">
+                            <option value="starter" ${user.tier === 'starter' ? 'selected' : ''}>Starter</option>
+                            <option value="pro" ${user.tier === 'pro' ? 'selected' : ''}>Pro</option>
+                            <option value="vip" ${user.tier === 'vip' ? 'selected' : ''}>VIP</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter users by tier
+        document.getElementById('tier-filter').addEventListener('change', async (e) => {
+            const tier = e.target.value;
+            const users = await getAllUsers();
+            const filtered = tier === 'all' ? users : users.filter(u => u.tier === tier);
+            displayUsers(filtered);
+        });
+
+        // Post form submission
+        document.getElementById('post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await savePost();
+        });
+
+        async function savePost() {
+            const postId = document.getElementById('post-id').value;
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const minTier = document.getElementById('post-tier').value;
+            const mediaFile = document.getElementById('post-media').files[0];
+            
+            const btn = document.getElementById('save-post-btn');
+            const btnText = btn.querySelector('.btn-text');
+            const btnLoading = btn.querySelector('.btn-loading');
+            const errorDiv = document.getElementById('post-form-error');
+            const successDiv = document.getElementById('post-form-success');
+
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            btn.disabled = true;
+
+            try {
+                const postData = { title, content, minTier };
+
+                // Upload media if provided
+                if (mediaFile) {
+                    const mediaData = await uploadMedia(mediaFile);
+                    postData.mediaUrl = mediaData.url;
+                    postData.mediaType = mediaFile.type;
+                }
+
+                if (postId) {
+                    await updatePost(postId, postData);
+                    successDiv.textContent = 'Post updated successfully!';
+                } else {
+                    await createPost(postData);
+                    successDiv.textContent = 'Post created successfully!';
+                }
+
+                successDiv.style.display = 'block';
+                resetPostForm();
+                loadPosts();
+            } catch (error) {
+                console.error('Error saving post:', error);
+                errorDiv.textContent = 'Error saving post: ' + error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function resetPostForm() {
+            document.getElementById('post-form').reset();
+            document.getElementById('post-id').value = '';
+            document.getElementById('post-form-title').textContent = 'Create New Post';
+            document.getElementById('save-post-btn').querySelector('.btn-text').textContent = 'Create Post';
+            document.getElementById('cancel-post-btn').style.display = 'none';
+            document.getElementById('current-media').style.display = 'none';
+            editingPostId = null;
+        }
+
+        window.editPost = async function(postId) {
+            try {
+                const post = await getPost(postId);
+                editingPostId = postId;
+                
+                document.getElementById('post-id').value = postId;
+                document.getElementById('post-title').value = post.title;
+                document.getElementById('post-content').value = post.content;
+                document.getElementById('post-tier').value = post.minTier;
+                
+                document.getElementById('post-form-title').textContent = 'Edit Post';
+                document.getElementById('save-post-btn').querySelector('.btn-text').textContent = 'Update Post';
+                document.getElementById('cancel-post-btn').style.display = 'inline-block';
+
+                if (post.mediaUrl) {
+                    document.getElementById('current-media').style.display = 'block';
+                    document.getElementById('media-name').textContent = 'Current file';
+                }
+
+                // Scroll to form
+                document.getElementById('post-form').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error loading post:', error);
+                alert('Error loading post for editing.');
+            }
+        };
+
+        window.deletePost = async function(postId) {
+            if (!confirm('Are you sure you want to delete this post?')) return;
+            
+            try {
+                await removePost(postId);
+                loadPosts();
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                alert('Error deleting post.');
+            }
+        };
+
+        window.updateUserTier = async function(userId, newTier) {
+            try {
+                await setUserTier(userId, newTier);
+                alert('User tier updated successfully!');
+            } catch (error) {
+                console.error('Error updating user tier:', error);
+                alert('Error updating user tier.');
+            }
+        };
+
+        document.getElementById('cancel-post-btn').addEventListener('click', resetPostForm);
+
+        document.getElementById('remove-media').addEventListener('click', () => {
+            document.getElementById('current-media').style.display = 'none';
+            // Note: Actual media deletion would be handled on save
+        });
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await logoutUser();
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
