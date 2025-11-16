@@ -123,12 +123,12 @@ Since this is a static site, you'll need to manually create the first admin user
 ## 💳 Payment Methods
 
 The platform displays payment information for:
-- **PayPal**: payments@slipsmith.example
-- **Cash App**: $SlipSmith
-- **Venmo**: @SlipSmith
-- **Chime**: payments@slipsmith.example
+- **PayPal**: @yatadagoat
+- **Cash App**: $yatadagoat
+- **Venmo**: @yatadagoat
+- **Chime**: $yatadagoat
 
-**Important**: Update these payment details in `plans.html` with your actual payment information.
+These payment details can be updated in `plans.html` if needed.
 
 ## 📊 Subscription Tiers
 
