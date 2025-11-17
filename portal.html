@@ -43,31 +43,43 @@
                     <section id="slip-request-section" class="portal-card" style="display: none;">
                         <h2>Request a Slip</h2>
                         <p id="slip-request-info"></p>
-
-                        <form id="slip-request-form">
-                            <div class="form-row">
-                                <label for="slip-request-sport">Sport</label>
-                                <select id="slip-request-sport" required>
-                                    <option value="">Select a sport</option>
-                                    <option value="NBA">NBA</option>
-                                    <option value="NFL">NFL</option>
-                                    <option value="NHL">NHL</option>
-                                    <option value="MLB">MLB</option>
-                                    <option value="UCL">UCL</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-
-                            <div class="form-row">
-                                <label for="slip-request-text">Special request details</label>
-                                <textarea id="slip-request-text" rows="4"
-                                    placeholder="Describe the slip or angle you want. Include players, lines, or constraints."></textarea>
-                            </div>
-
-                            <button type="submit" id="slip-request-submit">Submit slip request</button>
-                            <div id="slip-request-status" class="portal-status"></div>
-                        </form>
+                        <button id="open-slip-request-button" class="btn btn-primary">
+                            <span>📋</span> Request a Slip
+                        </button>
                     </section>
+
+                    <!-- Slip Request Modal -->
+                    <div id="slip-request-modal" class="modal" style="display: none;">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>Request a Slip</h2>
+                                <button class="modal-close" id="close-slip-request-modal">&times;</button>
+                            </div>
+                            <form id="slip-request-form">
+                                <div class="form-row">
+                                    <label for="slip-request-sport">Sport</label>
+                                    <select id="slip-request-sport" required>
+                                        <option value="">Select a sport</option>
+                                        <option value="NBA">NBA</option>
+                                        <option value="NFL">NFL</option>
+                                        <option value="NHL">NHL</option>
+                                        <option value="MLB">MLB</option>
+                                        <option value="UCL">UCL</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-row">
+                                    <label for="slip-request-text">Special request details</label>
+                                    <textarea id="slip-request-text" rows="4"
+                                        placeholder="Describe the slip or angle you want. Include players, lines, or constraints."></textarea>
+                                </div>
+
+                                <button type="submit" id="slip-request-submit" class="btn btn-primary">Submit slip request</button>
+                                <div id="slip-request-status" class="portal-status"></div>
+                            </form>
+                        </div>
+                    </div>
 
                     <div class="portal-grid">
                         <!-- Content Feed -->
