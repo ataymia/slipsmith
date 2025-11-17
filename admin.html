@@ -165,7 +165,51 @@
         });
 
         function showAuthRequired() {
-            document.getElementById('auth-required').style.display = 'block';
+            const authRequiredDiv = document.getElementById('auth-required');
+            
+            // If user is logged in but not admin, show detailed message
+            if (currentUser && currentUserData) {
+                const userEmail = currentUserData.email || currentUser.email || 'Unknown';
+                const userRole = currentUserData.role || 'none';
+                
+                authRequiredDiv.innerHTML = `
+                    <h2>🚫 Admin Access Denied</h2>
+                    <p><strong>You are logged in as:</strong> ${userEmail}</p>
+                    <p><strong>Your current role:</strong> ${userRole}</p>
+                    <p class="error-message">This account does not have admin privileges.</p>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px; text-align: left;">
+                        <h3 style="margin-top: 0;">To gain admin access:</h3>
+                        <ol style="margin: 0.5rem 0;">
+                            <li>Contact your site administrator</li>
+                            <li>Or update your user document in Firestore:
+                                <ul style="margin-top: 0.5rem;">
+                                    <li>Go to Firebase Console → Firestore Database</li>
+                                    <li>Navigate to collection: <code>users</code></li>
+                                    <li>Find document with ID: <code>${currentUser.uid}</code></li>
+                                    <li>Add or update field: <code>role</code> = <code>"admin"</code></li>
+                                    <li>Refresh this page</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                        <a href="portal.html" class="btn btn-primary">Go to Portal</a>
+                        <button id="logout-btn-denied" class="btn btn-outline">Log Out</button>
+                    </div>
+                `;
+                
+                // Add logout handler for the new button
+                document.getElementById('logout-btn-denied')?.addEventListener('click', async () => {
+                    try {
+                        await logoutUser();
+                        window.location.href = 'login.html';
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                });
+            }
+            
+            authRequiredDiv.style.display = 'block';
             document.getElementById('admin-content').style.display = 'none';
         }
 

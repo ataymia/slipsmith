@@ -342,11 +342,7 @@ auth.onAuthStateChanged(async (user) => {
     logDebug('routing decision', { note: `needsPasswordChange=${needsPasswordChange} hasUsername=${hasUsername} page=${page}` });
 
     if (page === "admin") {
-      if (currentUserDoc.role !== "admin") {
-        console.log('[auth routing] non-admin user tried to access admin -> redirect to portal');
-        window.location.href = "portal.html";
-        return;
-      }
+      // Don't redirect - let admin.html handle showing appropriate error message
       initAdminPage();
     } else if (page === "portal") {
       initPortalPage();
