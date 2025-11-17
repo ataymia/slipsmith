@@ -101,15 +101,18 @@
             cursor: pointer;
             transition: all 0.3s ease;
             border-bottom: 3px solid transparent;
+            border-radius: 8px 8px 0 0;
         }
 
         .tab-btn:hover {
             color: var(--accent-green-light);
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 136, 0.05) 100%);
         }
 
         .tab-btn.active {
             color: var(--accent-green);
             border-bottom-color: var(--accent-green);
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 136, 0.1) 100%);
         }
 
         .tab-content {
@@ -121,11 +124,12 @@
         }
 
         .controls {
-            background: var(--bg-card);
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
             padding: 1.5rem;
-            border-radius: 8px;
+            border-radius: 16px;
             margin-bottom: 2rem;
             border: 1px solid var(--border-color);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
 
         .control-row {
@@ -145,28 +149,36 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 12px;
             padding: 1rem;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
             resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
         }
 
         button {
-            background: var(--accent-green);
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-mint) 100%);
             color: var(--bg-primary);
             border: none;
             padding: 0.75rem 1.5rem;
-            border-radius: 4px;
+            border-radius: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
         }
 
         button:hover {
-            background: var(--accent-green-light);
+            background: linear-gradient(135deg, var(--accent-green-light) 0%, var(--accent-green) 100%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
         }
 
         button:disabled {
@@ -176,36 +188,38 @@
         }
 
         button.btn-secondary {
-            background: var(--bg-tertiary);
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
         }
 
         button.btn-secondary:hover {
-            background: var(--bg-secondary);
-            box-shadow: none;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.15);
         }
 
         .slip-container {
-            background: var(--bg-card);
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
+            border-radius: 20px;
+            padding: 2rem;
             margin-bottom: 2rem;
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
         }
 
         .slip-header {
-            background: var(--bg-tertiary);
-            padding: 1rem;
-            border-radius: 8px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            padding: 1.5rem;
+            border-radius: 16px;
             margin-bottom: 1.5rem;
-            border-left: 4px solid var(--accent-green);
+            border-left: 5px solid var(--accent-green);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.15);
         }
 
         .slip-header-content {
@@ -246,11 +260,18 @@
         }
 
         .event-card {
-            background: var(--bg-tertiary);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            border-left: 3px solid var(--accent-green);
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(26, 37, 40, 0.8) 100%);
+            padding: 1.25rem;
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-green);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .event-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 6px 16px rgba(0, 255, 136, 0.2);
         }
 
         .event-header {
@@ -275,12 +296,13 @@
         
         .tier-badge-inline {
             display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
             font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
             margin-left: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
         
         .tier-starter {
@@ -305,9 +327,10 @@
         }
 
         .pick-item {
-            background: var(--bg-card);
-            padding: 0.5rem;
-            border-radius: 4px;
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            padding: 0.75rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .pick-label {
@@ -337,22 +360,24 @@
         }
         
         .pick-reasoning {
-            background: var(--bg-primary);
-            padding: 0.5rem;
-            border-radius: 4px;
-            margin-top: 0.5rem;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(10, 14, 15, 0.8) 100%);
+            padding: 0.75rem;
+            border-radius: 10px;
+            margin-top: 0.75rem;
             font-size: 0.8rem;
             color: var(--text-secondary);
             font-style: italic;
+            border-left: 3px solid var(--accent-mint);
         }
 
         .status-badge {
             display: inline-block;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
             font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .badge-hit {
@@ -383,9 +408,10 @@
         .result-info {
             margin-top: 1rem;
             padding: 1rem;
-            background: var(--bg-primary);
-            border-radius: 4px;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, rgba(10, 14, 15, 0.8) 100%);
+            border-radius: 12px;
             font-size: 0.9rem;
+            border-left: 3px solid var(--accent-mint);
         }
 
         .result-actual {
@@ -400,20 +426,22 @@
         }
 
         .error-message {
-            background: var(--danger);
+            background: linear-gradient(135deg, var(--danger) 0%, #cc3333 100%);
             color: white;
-            padding: 1rem;
-            border-radius: 4px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
             margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
         }
 
         .success-message {
-            background: var(--success);
+            background: linear-gradient(135deg, var(--success) 0%, var(--accent-green-light) 100%);
             color: var(--bg-primary);
-            padding: 1rem;
-            border-radius: 4px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
             margin: 1rem 0;
             font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
         }
 
         .loading {
@@ -434,21 +462,23 @@
         }
 
         .recap-container {
-            background: var(--bg-card);
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 20px;
             padding: 2rem;
             margin-bottom: 2rem;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
         }
 
         .recap-summary {
-            background: var(--bg-tertiary);
-            padding: 1.5rem;
-            border-radius: 8px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            padding: 2rem;
+            border-radius: 16px;
             margin-bottom: 2rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
+            gap: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
 
         .summary-item {
@@ -515,6 +545,7 @@
             </div>
             <div class="control-row" style="margin-top: 1rem;">
                 <button onclick="renderSlip()">🎨 Render Slip</button>
+                <button onclick="postToFeed()" id="post-to-feed-btn" style="display: none;">📤 Post to Feed</button>
                 <button onclick="generateImage()">📸 Generate Image</button>
                 <button onclick="saveToStorage()">💾 Save to Storage</button>
                 <button onclick="exportJSON()">⬇️ Download JSON</button>
@@ -561,6 +592,7 @@
             </div>
             <div class="control-row" style="margin-top: 1rem;">
                 <button onclick="renderRecap()">📊 Render Recap</button>
+                <button onclick="postRecapToFeed()" id="post-recap-to-feed-btn" style="display: none;">📤 Post to Feed</button>
                 <button onclick="generateRecapImage()">📸 Generate Image</button>
                 <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
             </div>
@@ -569,8 +601,53 @@
         <div id="recap-output"></div>
     </div>
 
+    <!-- Post to Feed Modal -->
+    <div id="post-to-feed-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; backdrop-filter: blur(4px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%); padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="color: var(--accent-green); margin: 0;">📤 Post to Content Feed</h2>
+                <button onclick="closePostModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0; width: 32px; height: 32px; border-radius: 8px; transition: all 0.3s ease;">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">Post Title *</label>
+                <input type="text" id="feed-post-title" placeholder="e.g., NBA Morning Slip - Jan 15" style="width: 100%; padding: 0.75rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">Description (optional)</label>
+                <textarea id="feed-post-description" rows="3" placeholder="Add a brief description or note..." style="width: 100%; padding: 0.75rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 0.95rem; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">Who can see this? *</label>
+                <select id="feed-post-tier" style="width: 100%; padding: 0.75rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 1rem; cursor: pointer;">
+                    <option value="starter">🔵 Starter (All Members)</option>
+                    <option value="pro">🟡 Pro & VIP Only</option>
+                    <option value="vip">💚 VIP Exclusive</option>
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">Choose which subscription tiers can view this slip</small>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="confirmPostToFeed()" id="confirm-post-btn" style="flex: 1; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-mint) 100%); color: var(--bg-primary); border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);">
+                    Post to Feed
+                </button>
+                <button onclick="closePostModal()" style="flex: 1; background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    Cancel
+                </button>
+            </div>
+            
+            <div id="post-modal-status" style="margin-top: 1rem; display: none;"></div>
+        </div>
+    </div>
+
     <!-- html2canvas for image generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Firebase SDKs (v9 compat) - Load parent's Firebase -->
+    <script src="../firebase.js"></script>
+    <script src="../app.js"></script>
     
     <script>
         // Global state and cache
@@ -899,8 +976,10 @@
                 html += `</div>`;
                 output.innerHTML = html;
                 showMessage('success', 'Slip rendered successfully!');
+                updatePostToFeedButton();
             } catch (e) {
                 output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+                updatePostToFeedButton();
             }
         }
 
@@ -1199,9 +1278,11 @@
                 html += `</div>`;
                 output.innerHTML = html;
                 showMessage('success', 'Recap rendered successfully!');
+                updateRecapPostButton();
                 
             } catch (e) {
                 output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+                updateRecapPostButton();
             }
         }
 
@@ -1380,9 +1461,180 @@
             }
         }
 
+        // Post to Feed functionality
+        let currentPostType = 'slip'; // 'slip' or 'recap'
+        let currentRenderedHTML = null;
+        
+        function postToFeed() {
+            if (!currentSlipData) {
+                showMessage('error', 'Please render a slip first!');
+                return;
+            }
+            
+            currentPostType = 'slip';
+            
+            // Pre-fill the tier from the tier selector
+            const selectedTier = document.getElementById('tier-select').value;
+            document.getElementById('feed-post-tier').value = selectedTier;
+            
+            // Suggest a title
+            const slipId = currentSlipData.slip_id || 'Slip';
+            const sport = currentSlipData.sport || 'Multi-Sport';
+            const date = currentSlipData.date || new Date().toISOString().split('T')[0];
+            document.getElementById('feed-post-title').value = `${sport} ${slipId} - ${date}`;
+            
+            // Show modal
+            document.getElementById('post-to-feed-modal').style.display = 'block';
+        }
+        
+        function postRecapToFeed() {
+            const recapOutput = document.getElementById('recap-output');
+            if (!recapOutput.innerHTML || recapOutput.innerHTML.trim() === '') {
+                showMessage('error', 'Please render a recap first!');
+                return;
+            }
+            
+            currentPostType = 'recap';
+            
+            // Try to get data from recap JSON
+            try {
+                const json = document.getElementById('recap-json').value;
+                const data = JSON.parse(json);
+                
+                // Pre-fill tier if available
+                if (data.tier) {
+                    document.getElementById('feed-post-tier').value = data.tier;
+                }
+                
+                // Suggest a title
+                const slipId = data.slip_id || 'Recap';
+                const sport = data.sport || 'Multi-Sport';
+                const date = data.date || new Date().toISOString().split('T')[0];
+                document.getElementById('feed-post-title').value = `${sport} ${slipId} Results - ${date}`;
+            } catch (e) {
+                // If can't parse, just use defaults
+                document.getElementById('feed-post-title').value = `Recap - ${new Date().toISOString().split('T')[0]}`;
+            }
+            
+            // Show modal
+            document.getElementById('post-to-feed-modal').style.display = 'block';
+        }
+        
+        function closePostModal() {
+            document.getElementById('post-to-feed-modal').style.display = 'none';
+            document.getElementById('post-modal-status').style.display = 'none';
+        }
+        
+        async function confirmPostToFeed() {
+            const title = document.getElementById('feed-post-title').value.trim();
+            const description = document.getElementById('feed-post-description').value.trim();
+            const minTier = document.getElementById('feed-post-tier').value;
+            const statusDiv = document.getElementById('post-modal-status');
+            const confirmBtn = document.getElementById('confirm-post-btn');
+            
+            if (!title) {
+                statusDiv.innerHTML = '<div style="color: var(--danger); padding: 0.75rem; background: rgba(255, 68, 68, 0.1); border-radius: 8px;">Please enter a title</div>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+            
+            // Check if Firebase is available
+            if (typeof window.createPost !== 'function') {
+                statusDiv.innerHTML = '<div style="color: var(--danger); padding: 0.75rem; background: rgba(255, 68, 68, 0.1); border-radius: 8px;">Firebase not loaded. Please open this tool from the admin dashboard.</div>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+            
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Posting...';
+            statusDiv.style.display = 'none';
+            
+            try {
+                // Capture the rendered content as an image
+                const elementId = currentPostType === 'slip' ? 'slip-to-capture' : 'recap-to-capture';
+                const element = document.getElementById(elementId);
+                
+                if (!element) {
+                    throw new Error('No rendered content found. Please render first.');
+                }
+                
+                statusDiv.innerHTML = '<div style="color: var(--accent-green); padding: 0.75rem; background: rgba(0, 255, 136, 0.1); border-radius: 8px;">📸 Generating image...</div>';
+                statusDiv.style.display = 'block';
+                
+                // Generate image using html2canvas
+                const canvas = await html2canvas(element, {
+                    backgroundColor: '#0a0e0f',
+                    scale: 2
+                });
+                
+                // Convert canvas to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                statusDiv.innerHTML = '<div style="color: var(--accent-green); padding: 0.75rem; background: rgba(0, 255, 136, 0.1); border-radius: 8px;">☁️ Uploading image...</div>';
+                
+                // Upload the image
+                const file = new File([blob], `${currentPostType}-${Date.now()}.png`, { type: 'image/png' });
+                const mediaData = await window.uploadMedia(file);
+                
+                statusDiv.innerHTML = '<div style="color: var(--accent-green); padding: 0.75rem; background: rgba(0, 255, 136, 0.1); border-radius: 8px;">📝 Creating post...</div>';
+                
+                // Create the post
+                const postData = {
+                    title: title,
+                    content: description || `${currentPostType === 'slip' ? '🎯 Morning Slip' : '📊 Results Recap'}`,
+                    minTier: minTier,
+                    mediaUrl: mediaData.url,
+                    mediaType: 'image/png'
+                };
+                
+                await window.createPost(postData);
+                
+                statusDiv.innerHTML = '<div style="color: var(--accent-green); padding: 0.75rem; background: rgba(0, 255, 136, 0.1); border-radius: 8px; font-weight: 600;">✅ Successfully posted to content feed!</div>';
+                statusDiv.style.display = 'block';
+                
+                // Reset form and close after 2 seconds
+                setTimeout(() => {
+                    closePostModal();
+                    document.getElementById('feed-post-title').value = '';
+                    document.getElementById('feed-post-description').value = '';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error posting to feed:', error);
+                statusDiv.innerHTML = `<div style="color: var(--danger); padding: 0.75rem; background: rgba(255, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${error.message}</div>`;
+                statusDiv.style.display = 'block';
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Post to Feed';
+            }
+        }
+        
+        // Show/hide Post to Feed button based on whether content is rendered
+        function updatePostToFeedButton() {
+            const slipOutput = document.getElementById('slip-output');
+            const postBtn = document.getElementById('post-to-feed-btn');
+            
+            if (slipOutput.innerHTML && slipOutput.innerHTML.trim() !== '') {
+                postBtn.style.display = 'inline-block';
+            } else {
+                postBtn.style.display = 'none';
+            }
+        }
+        
+        function updateRecapPostButton() {
+            const recapOutput = document.getElementById('recap-output');
+            const postBtn = document.getElementById('post-recap-to-feed-btn');
+            
+            if (recapOutput.innerHTML && recapOutput.innerHTML.trim() !== '') {
+                postBtn.style.display = 'inline-block';
+            } else {
+                postBtn.style.display = 'none';
+            }
+        }
+
         // Initialize
         console.log('THE Slipsmith loaded successfully!');
-        console.log('🎯 Enhanced with probability, reasoning, tier limits, and image generation');
+        console.log('🎯 Enhanced with probability, reasoning, tier limits, image generation, and post to feed!');
     </script>
 </body>
 </html>
