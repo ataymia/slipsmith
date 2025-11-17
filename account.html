@@ -33,14 +33,15 @@
                 <h1>Your Account</h1>
 
                 <!-- Basic info -->
-            <div class="account-section">
+            <div class="account-section" id="account-username-section">
                 <h2>Profile</h2>
                 <p><strong>Email:</strong> <span id="account-email"></span></p>
 
                 <label for="account-username-input">Username</label>
-                <input type="text" id="account-username-input" placeholder="Your username">
+                <input type="text" id="account-username-input" placeholder="Your username" maxlength="20">
+                <small class="form-hint">3-20 characters, letters, numbers, periods, and underscores only</small>
 
-                <button id="account-username-save-button">Save username</button>
+                <button id="account-username-save" class="btn btn-primary">Save Username</button>
                 <div id="account-username-status" class="account-status"></div>
             </div>
 
