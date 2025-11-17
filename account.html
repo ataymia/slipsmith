@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - $lip$mith</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">$lip$mith</div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plans.html">Plans</a></li>
+                <li><a href="portal.html">Portal</a></li>
+                <li><a href="account.html" class="active" id="account-link">Account</a></li>
+                <li><a href="admin.html" id="admin-link" style="display: none;">Admin</a></li>
+                <li><button id="logout-button">Log Out</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="account-main">
+        <section class="account-card">
+            <h1>Your Account</h1>
+
+            <!-- Basic info -->
+            <div class="account-section">
+                <h2>Profile</h2>
+                <p><strong>Email:</strong> <span id="account-email"></span></p>
+
+                <label for="account-username-input">Username</label>
+                <input type="text" id="account-username-input" placeholder="Your username">
+
+                <button id="account-username-save-button">Save username</button>
+                <div id="account-username-status" class="account-status"></div>
+            </div>
+
+            <!-- Subscription status -->
+            <div class="account-section">
+                <h2>Subscription</h2>
+                <p id="account-subscription-label">Loading subscription...</p>
+            </div>
+
+            <!-- Password change -->
+            <div class="account-section">
+                <h2>Change password</h2>
+
+                <label for="account-new-password-input">New password</label>
+                <input type="password" id="account-new-password-input">
+
+                <label for="account-confirm-password-input">Confirm new password</label>
+                <input type="password" id="account-confirm-password-input">
+
+                <button id="account-password-save-button">Update password</button>
+                <div id="account-password-status" class="account-status"></div>
+            </div>
+
+            <!-- Danger zone -->
+            <div class="account-section account-danger">
+                <h2>Danger zone</h2>
+                <p>Deleting your account will remove your access and may delete your data. This action cannot be undone.</p>
+                <button id="account-delete-button">Delete my account</button>
+                <div id="account-delete-status" class="account-status"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 $lip$mith. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDKs (v9 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

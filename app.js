@@ -66,6 +66,7 @@ function getCurrentPage() {
   if (path.endsWith("portal.html")) return "portal";
   if (path.endsWith("admin.html")) return "admin";
   if (path.endsWith("plans.html")) return "plans";
+  if (path.endsWith("account.html")) return "account";
   if (path.endsWith("index.html") || path === "/" || path === "") return "index";
 
   return "other";
@@ -112,7 +113,7 @@ auth.onAuthStateChanged(async (user) => {
     updateAdminLinkVisibility();
 
     // Protected pages go to login
-    if (page === "portal" || page === "admin") {
+    if (page === "portal" || page === "admin" || page === "account") {
       window.location.href = "login.html";
       return;
     }
@@ -185,6 +186,8 @@ auth.onAuthStateChanged(async (user) => {
       initAdminPage();
     } else if (page === "portal") {
       initPortalPage();
+    } else if (page === "account") {
+      initAccountPage();
     } else if (page === "login") {
       // Logged-in user visiting login.html
       if (needsPasswordChange) {
@@ -681,6 +684,184 @@ async function initializeChat() {
       alert('Failed to send message. Please try again.');
     }
   });
+}
+
+// ============================================================================
+// ACCOUNT PAGE
+// ============================================================================
+
+function initAccountPage() {
+  initLogoutHandler();
+  updateAdminLinkVisibility();
+
+  const emailSpan = document.getElementById("account-email");
+  const usernameInput = document.getElementById("account-username-input");
+  const usernameSaveButton = document.getElementById("account-username-save-button");
+  const usernameStatus = document.getElementById("account-username-status");
+
+  const subscriptionLabel = document.getElementById("account-subscription-label");
+
+  const newPasswordInput = document.getElementById("account-new-password-input");
+  const confirmPasswordInput = document.getElementById("account-confirm-password-input");
+  const passwordSaveButton = document.getElementById("account-password-save-button");
+  const passwordStatus = document.getElementById("account-password-status");
+
+  const deleteButton = document.getElementById("account-delete-button");
+  const deleteStatus = document.getElementById("account-delete-status");
+
+  if (!currentUser || !currentUserDoc) {
+    // Safety: if somehow we got here without a user, send to login
+    window.location.href = "login.html";
+    return;
+  }
+
+  // 1) Show email and username
+  if (emailSpan) {
+    emailSpan.textContent = currentUserDoc.email || currentUser.email || "";
+  }
+
+  if (usernameInput) {
+    usernameInput.value = currentUserDoc.username || "";
+  }
+
+  // 2) Subscription days left
+  if (subscriptionLabel) {
+    const expires = currentUserDoc.subscriptionEndsAt;
+    if (!expires) {
+      subscriptionLabel.textContent = "No expiration date set for your subscription.";
+    } else {
+      try {
+        const expiresDate = expires.toDate ? expires.toDate() : new Date(expires);
+        const now = new Date();
+        const diffMs = expiresDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+          subscriptionLabel.textContent = `Your ${currentUserDoc.tier || "current"} subscription has expired.`;
+        } else if (diffDays === 0) {
+          subscriptionLabel.textContent = `Your ${currentUserDoc.tier || "current"} subscription expires today.`;
+        } else {
+          subscriptionLabel.textContent = `You have ${diffDays} day(s) left on your ${currentUserDoc.tier || "current"} subscription.`;
+        }
+      } catch (e) {
+        console.error("Error computing subscription days:", e);
+        subscriptionLabel.textContent = "Unable to determine subscription expiration.";
+      }
+    }
+  }
+
+  // 3) Username change handler
+  if (usernameSaveButton && usernameInput) {
+    usernameSaveButton.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (usernameStatus) usernameStatus.textContent = "";
+
+      const newUsername = usernameInput.value.trim();
+      if (!newUsername) {
+        if (usernameStatus) usernameStatus.textContent = "Username cannot be empty.";
+        return;
+      }
+
+      try {
+        const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
+        await userDocRef.update({
+          username: newUsername,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        currentUserDoc.username = newUsername;
+        if (usernameStatus) usernameStatus.textContent = "Username updated successfully.";
+      } catch (err) {
+        console.error("Error updating username:", err);
+        if (usernameStatus) usernameStatus.textContent = "Failed to update username. Please try again.";
+      }
+    });
+  }
+
+  // 4) Password change handler
+  if (passwordSaveButton && newPasswordInput && confirmPasswordInput) {
+    passwordSaveButton.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (passwordStatus) passwordStatus.textContent = "";
+
+      const newPass = newPasswordInput.value;
+      const confirmPass = confirmPasswordInput.value;
+
+      if (!newPass || !confirmPass) {
+        if (passwordStatus) passwordStatus.textContent = "Please fill out both password fields.";
+        return;
+      }
+
+      if (newPass !== confirmPass) {
+        if (passwordStatus) passwordStatus.textContent = "Passwords do not match.";
+        return;
+      }
+
+      try {
+        await currentUser.updatePassword(newPass);
+
+        // Clear any mustChangePassword flag if you use it
+        try {
+          const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
+          await userDocRef.update({
+            mustChangePassword: false,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          currentUserDoc.mustChangePassword = false;
+        } catch (innerErr) {
+          console.warn("Could not update mustChangePassword flag:", innerErr);
+        }
+
+        if (passwordStatus) passwordStatus.textContent = "Password updated successfully.";
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+      } catch (err) {
+        console.error("Error updating password:", err);
+        let msg = "Failed to update password. Please try again.";
+        if (err.code === "auth/requires-recent-login") {
+          msg = "For security, please log out and log back in, then try changing your password again.";
+        }
+        if (passwordStatus) passwordStatus.textContent = msg;
+      }
+    });
+  }
+
+  // 5) Delete account handler
+  if (deleteButton) {
+    deleteButton.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (deleteStatus) deleteStatus.textContent = "";
+
+      const confirmed = window.confirm("Are you sure you want to delete your account? This cannot be undone.");
+      if (!confirmed) return;
+
+      try {
+        // Delete Firestore user doc first (optional but recommended)
+        try {
+          const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
+          await userDocRef.delete();
+        } catch (docErr) {
+          console.warn("Error deleting user document:", docErr);
+        }
+
+        // Then delete Auth user
+        await currentUser.delete();
+
+        if (deleteStatus) deleteStatus.textContent = "Your account has been deleted.";
+        // Redirect after a brief pause
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1500);
+      } catch (err) {
+        console.error("Error deleting account:", err);
+        let msg = "Failed to delete your account. Please try again.";
+        if (err.code === "auth/requires-recent-login") {
+          msg = "For security, please log out and log back in, then try deleting your account again.";
+        }
+        if (deleteStatus) deleteStatus.textContent = msg;
+      }
+    });
+  }
 }
 
 // ============================================================================
