@@ -14,6 +14,7 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="plans.html">Plans</a></li>
                 <li><a href="portal.html" class="active">Portal</a></li>
+                <li><a href="inbox.html" id="inbox-link" class="hidden">Inbox</a></li>
                 <li><a href="account.html" id="account-link" class="hidden">Account</a></li>
                 <li><a href="admin.html" id="admin-link" class="hidden">Admin</a></li>
                 <li><button id="logout-button" class="btn btn-primary hidden">Log Out</button></li>
@@ -37,6 +38,36 @@
                         </div>
                         <div class="tier-badge" id="tier-badge"></div>
                     </div>
+
+                    <!-- Slip Request Section (Pro/VIP only) -->
+                    <section id="slip-request-section" class="portal-card" style="display: none;">
+                        <h2>Request a Slip</h2>
+                        <p id="slip-request-info"></p>
+
+                        <form id="slip-request-form">
+                            <div class="form-row">
+                                <label for="slip-request-sport">Sport</label>
+                                <select id="slip-request-sport" required>
+                                    <option value="">Select a sport</option>
+                                    <option value="NBA">NBA</option>
+                                    <option value="NFL">NFL</option>
+                                    <option value="NHL">NHL</option>
+                                    <option value="MLB">MLB</option>
+                                    <option value="UCL">UCL</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <label for="slip-request-text">Special request details</label>
+                                <textarea id="slip-request-text" rows="4"
+                                    placeholder="Describe the slip or angle you want. Include players, lines, or constraints."></textarea>
+                            </div>
+
+                            <button type="submit" id="slip-request-submit">Submit slip request</button>
+                            <div id="slip-request-status" class="portal-status"></div>
+                        </form>
+                    </section>
 
                     <div class="portal-grid">
                         <!-- Content Feed -->
