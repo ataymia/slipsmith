@@ -1179,6 +1179,13 @@ function initAdminUserManager() {
         tempPassword
       };
 
+      // Add subscription end date if provided
+      if (subscriptionEndsRaw) {
+        // Convert datetime-local to timestamp (milliseconds)
+        const subscriptionEndsDate = new Date(subscriptionEndsRaw);
+        payload.subscriptionEndsAt = subscriptionEndsDate.getTime();
+      }
+
       if (uid) {
         payload.uid = uid;
       }
@@ -1188,23 +1195,6 @@ function initAdminUserManager() {
       const data = result.data || {};
 
       console.log("adminUpsertUser result:", data);
-
-      // Update subscriptionEndsAt directly in Firestore if provided
-      if (subscriptionEndsRaw && data.uid) {
-        try {
-          const subscriptionEndsDate = new Date(subscriptionEndsRaw);
-          await db.collection("users").doc(data.uid).update({
-            subscriptionEndsAt: firebase.firestore.Timestamp.fromDate(subscriptionEndsDate),
-            updatedAt: getServerTimestamp()
-          });
-          console.log("Subscription end date updated:", subscriptionEndsDate);
-        } catch (subErr) {
-          console.error("Error updating subscription end date:", subErr);
-          if (statusDiv) {
-            statusDiv.textContent += " (Warning: Could not set subscription end date)";
-          }
-        }
-      }
 
       if (statusDiv) {
         statusDiv.className = "success-message";
