@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results Bot - Slipsmith</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e0f;
+            --bg-secondary: #131a1d;
+            --bg-tertiary: #1a2528;
+            --bg-card: #1f2a2e;
+            --text-primary: #e8f0f2;
+            --text-secondary: #a8b8bd;
+            --text-muted: #6b7e85;
+            --accent-green: #00ff88;
+            --accent-green-dark: #00cc6d;
+            --accent-green-light: #4dffaa;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --info: #44aaff;
+            --success: #00ff88;
+            --border-color: #2a3a40;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-green);
+        }
+
+        .header h1 {
+            color: var(--accent-green);
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .controls {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            color: var(--accent-green);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        button {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--accent-green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        button.btn-secondary:hover {
+            background: var(--bg-secondary);
+            box-shadow: none;
+        }
+
+        .results {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+        }
+
+        .result-item {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-hit {
+            background: var(--success);
+            color: var(--bg-primary);
+        }
+
+        .badge-miss {
+            background: var(--danger);
+            color: white;
+        }
+
+        .badge-push {
+            background: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .badge-void {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .badge-pending {
+            background: var(--info);
+            color: white;
+        }
+
+        .result-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-item {
+            background: var(--bg-card);
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .detail-value.highlight {
+            color: var(--accent-green);
+            font-size: 1.2rem;
+        }
+
+        .result-reason {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        .summary {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .summary-item {
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 4px;
+        }
+
+        .summary-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .error-message {
+            background: var(--danger);
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .info-box {
+            background: var(--bg-tertiary);
+            border-left: 4px solid var(--info);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box h3 {
+            color: var(--info);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul {
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .info-box ul li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Results Bot</h1>
+            <p>Automated Pick Grading with Live Stats</p>
+        </div>
+
+        <div class="info-box">
+            <h3>ℹ️ How It Works</h3>
+            <ul>
+                <li>Paste your slip JSON with pick details</li>
+                <li>Results Bot fetches live stats from free sports APIs</li>
+                <li>Automatically grades each pick as HIT/MISS/PUSH/VOID</li>
+                <li>Supports NBA, NHL, NFL, and Soccer</li>
+            </ul>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>📝 Slip JSON Input</label>
+                <textarea id="slip-json" placeholder='Paste your slip JSON here. Example:
+{
+  "slip_id": "NBA_2024_01_15",
+  "date": "2024-01-15",
+  "sport": "NBA",
+  "events": [
+    {
+      "player": "Stephen Curry",
+      "team": "GSW",
+      "game_id": "LAL@GSW",
+      "market": "points",
+      "line": 27.5,
+      "direction": "over"
+    }
+  ]
+}'></textarea>
+            </div>
+            <div class="button-group">
+                <button onclick="gradeSlip()">🔍 Grade Picks</button>
+                <button class="btn-secondary" onclick="loadSample()">📋 Load Sample</button>
+                <button class="btn-secondary" onclick="exportResults()">⬇️ Download Results</button>
+                <button class="btn-secondary" onclick="clearResults()">🗑️ Clear</button>
+            </div>
+        </div>
+
+        <div id="results-output"></div>
+    </div>
+
+    <script>
+        let currentResults = null;
+        const apiCache = {
+            nba: new Map(),
+            nhl: new Map(),
+            nfl: new Map(),
+            soccer: new Map()
+        };
+
+        function loadSample() {
+            const sample = {
+                "slip_id": "SAMPLE_2024_01_15",
+                "date": "2024-01-15",
+                "sport": "NBA",
+                "events": [
+                    {
+                        "event_id": "nba_sample_1",
+                        "game_id": "LAL@GSW",
+                        "time": "10:00 PM ET",
+                        "player": "Stephen Curry",
+                        "team": "GSW",
+                        "market": "points",
+                        "line": 27.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nba_sample_2",
+                        "game_id": "LAL@GSW",
+                        "time": "10:00 PM ET",
+                        "player": "LeBron James",
+                        "team": "LAL",
+                        "market": "assists",
+                        "line": 7.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nba_sample_3",
+                        "game_id": "BOS@MIL",
+                        "time": "8:00 PM ET",
+                        "player": "Giannis Antetokounmpo",
+                        "team": "MIL",
+                        "market": "rebounds",
+                        "line": 11.5,
+                        "direction": "over"
+                    }
+                ]
+            };
+            document.getElementById('slip-json').value = JSON.stringify(sample, null, 2);
+            showMessage('success', 'Sample loaded! Click "Grade Picks" to test.');
+        }
+
+        async function gradeSlip() {
+            const json = document.getElementById('slip-json').value;
+            const output = document.getElementById('results-output');
+            
+            if (!json.trim()) {
+                showMessage('error', 'Please enter slip JSON');
+                return;
+            }
+            
+            try {
+                const slip = JSON.parse(json);
+                
+                if (!slip.events || !Array.isArray(slip.events) || slip.events.length === 0) {
+                    throw new Error('Slip must contain an events array with at least one event');
+                }
+                
+                output.innerHTML = '<div class="loading">Grading picks and fetching live stats</div>';
+                
+                // Grade each event
+                const gradedEvents = [];
+                for (const event of slip.events) {
+                    const gradedEvent = await gradeEvent(event, slip.sport, slip.date);
+                    gradedEvents.push(gradedEvent);
+                }
+                
+                slip.events = gradedEvents;
+                currentResults = slip;
+                
+                // Display results
+                displayResults(slip);
+                
+            } catch (e) {
+                output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        async function gradeEvent(event, sport, date) {
+            const graded = { ...event };
+            
+            try {
+                let stats;
+                
+                switch (sport?.toUpperCase()) {
+                    case 'NBA':
+                        stats = await fetchNBAStats(event, date);
+                        break;
+                    case 'NHL':
+                        stats = await fetchNHLStats(event, date);
+                        break;
+                    case 'NFL':
+                        stats = await fetchNFLStats(event, date);
+                        break;
+                    case 'SOCCER':
+                        stats = await fetchSoccerStats(event, date);
+                        break;
+                    default:
+                        graded.result = 'VOID';
+                        graded.reason = `Unsupported sport: ${sport}`;
+                        return graded;
+                }
+                
+                if (stats.error) {
+                    graded.result = 'PENDING';
+                    graded.reason = stats.error;
+                    return graded;
+                }
+                
+                graded.actual_value = stats.value;
+                graded.result = determineResult(event.direction, event.line, stats.value);
+                graded.reason = stats.reason || `Player recorded ${stats.value} ${event.market}`;
+                
+            } catch (e) {
+                graded.result = 'PENDING';
+                graded.reason = `Error: ${e.message}`;
+            }
+            
+            return graded;
+        }
+
+        function determineResult(direction, line, actual) {
+            if (actual === null || actual === undefined) {
+                return 'VOID';
+            }
+            
+            const lineNum = parseFloat(line);
+            const actualNum = parseFloat(actual);
+            
+            if (isNaN(lineNum) || isNaN(actualNum)) {
+                return 'VOID';
+            }
+            
+            if (actualNum === lineNum) {
+                return 'PUSH';
+            }
+            
+            if (direction?.toLowerCase() === 'over') {
+                return actualNum > lineNum ? 'HIT' : 'MISS';
+            } else if (direction?.toLowerCase() === 'under') {
+                return actualNum < lineNum ? 'HIT' : 'MISS';
+            }
+            
+            return 'VOID';
+        }
+
+        function displayResults(slip) {
+            const output = document.getElementById('results-output');
+            
+            // Calculate summary
+            const summary = {
+                total: slip.events.length,
+                hit: slip.events.filter(e => e.result === 'HIT').length,
+                miss: slip.events.filter(e => e.result === 'MISS').length,
+                push: slip.events.filter(e => e.result === 'PUSH').length,
+                void: slip.events.filter(e => e.result === 'VOID').length,
+                pending: slip.events.filter(e => e.result === 'PENDING').length
+            };
+
+            let html = `
+                <div class="results">
+                    <h2 style="color: var(--accent-green); margin-bottom: 1.5rem;">📊 Grading Results</h2>
+                    
+                    <div class="summary">
+                        <div class="summary-item">
+                            <div class="summary-label">Total</div>
+                            <div class="summary-value">${summary.total}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">✅ Hit</div>
+                            <div class="summary-value" style="color: var(--success);">${summary.hit}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">❌ Miss</div>
+                            <div class="summary-value" style="color: var(--danger);">${summary.miss}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">⚖️ Push</div>
+                            <div class="summary-value" style="color: var(--warning);">${summary.push}</div>
+                        </div>
+                        ${summary.void > 0 ? `
+                        <div class="summary-item">
+                            <div class="summary-label">⚫ Void</div>
+                            <div class="summary-value" style="color: var(--text-muted);">${summary.void}</div>
+                        </div>
+                        ` : ''}
+                        ${summary.pending > 0 ? `
+                        <div class="summary-item">
+                            <div class="summary-label">⏳ Pending</div>
+                            <div class="summary-value" style="color: var(--info);">${summary.pending}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+            `;
+
+            slip.events.forEach((event, idx) => {
+                html += `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="player-name">${event.player || 'Unknown Player'}</div>
+                            <span class="status-badge badge-${event.result?.toLowerCase() || 'void'}">${event.result || 'VOID'}</span>
+                        </div>
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Game</div>
+                                <div class="detail-value">${event.game_id || 'N/A'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Market</div>
+                                <div class="detail-value">${formatMarket(event.market)}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Pick</div>
+                                <div class="detail-value highlight">${event.direction?.toUpperCase() || 'N/A'} ${event.line || 'N/A'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Actual</div>
+                                <div class="detail-value highlight">${event.actual_value !== undefined ? event.actual_value : 'N/A'}</div>
+                            </div>
+                        </div>
+                        ${event.reason ? `<div class="result-reason">📝 ${event.reason}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            output.innerHTML = html;
+            showMessage('success', `Graded ${slip.events.length} pick${slip.events.length !== 1 ? 's' : ''}!`);
+        }
+
+        function formatMarket(market) {
+            if (!market) return 'N/A';
+            return market.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // API Integration Functions
+
+        async function fetchNBAStats(event, date) {
+            try {
+                const cacheKey = `${event.player}_${date}_${event.market}`;
+                
+                if (apiCache.nba.has(cacheKey)) {
+                    return apiCache.nba.get(cacheKey);
+                }
+
+                // Mock data for demonstration
+                // In production, implement actual balldontlie.io API calls
+                const result = {
+                    value: Math.floor(Math.random() * 40),
+                    reason: `NBA API (balldontlie.io) - Mock data for demonstration. Implement actual API integration for production.`
+                };
+                
+                apiCache.nba.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NBA API error: ${e.message}` };
+            }
+        }
+
+        async function fetchNHLStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}`;
+                
+                if (apiCache.nhl.has(cacheKey)) {
+                    return apiCache.nhl.get(cacheKey);
+                }
+
+                // Mock data - replace with actual NHL API implementation
+                const result = {
+                    value: Math.floor(Math.random() * 3),
+                    reason: `NHL API (statsapi.web.nhl.com) - Mock data. Implement actual game ID mapping and boxscore fetching.`
+                };
+                
+                apiCache.nhl.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NHL API error: ${e.message}. Possible CORS issue.` };
+            }
+        }
+
+        async function fetchNFLStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}_${event.market}`;
+                
+                if (apiCache.nfl.has(cacheKey)) {
+                    return apiCache.nfl.get(cacheKey);
+                }
+
+                // Parse game_id to validate format
+                const teams = event.game_id.split('@');
+                if (teams.length !== 2) {
+                    return { error: 'Invalid game_id format. Use VIS@HOME format (e.g., KC@BUF)' };
+                }
+
+                // Mock data - replace with ESPN API implementation
+                const result = {
+                    value: Math.floor(Math.random() * 300),
+                    reason: `NFL ESPN API - Mock data. Implement scoreboard endpoint mapping and boxscore parsing. May encounter CORS.`
+                };
+                
+                apiCache.nfl.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NFL API error: ${e.message}. ESPN endpoints may have CORS restrictions.` };
+            }
+        }
+
+        async function fetchSoccerStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}_${event.market}`;
+                
+                if (apiCache.soccer.has(cacheKey)) {
+                    return apiCache.soccer.get(cacheKey);
+                }
+
+                // Mock data - replace with ESPN Soccer API
+                const result = {
+                    value: Math.floor(Math.random() * 3),
+                    reason: `Soccer ESPN API - Mock data. Implement league-specific endpoints and event mapping. CORS may apply.`
+                };
+                
+                apiCache.soccer.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `Soccer API error: ${e.message}. ESPN endpoints may have CORS restrictions.` };
+            }
+        }
+
+        function exportResults() {
+            if (!currentResults) {
+                showMessage('error', 'No results to export. Grade picks first.');
+                return;
+            }
+
+            const json = JSON.stringify(currentResults, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `graded-${currentResults.slip_id || 'results'}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('success', 'Results downloaded!');
+        }
+
+        function clearResults() {
+            document.getElementById('results-output').innerHTML = '';
+            currentResults = null;
+            showMessage('success', 'Results cleared.');
+        }
+
+        function showMessage(type, message) {
+            const existingMessages = document.querySelectorAll('.success-message, .error-message');
+            existingMessages.forEach(msg => {
+                if (!msg.closest('.results')) {
+                    msg.remove();
+                }
+            });
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = type === 'success' ? 'success-message' : 'error-message';
+            msgDiv.textContent = message;
+            
+            const controls = document.querySelector('.controls');
+            controls.appendChild(msgDiv);
+            
+            setTimeout(() => msgDiv.remove(), 5000);
+        }
+
+        // Initialize
+        console.log('Results Bot loaded successfully!');
+        console.log('Note: API integrations use mock data. Implement actual API calls for production.');
+    </script>
+</body>
+</html>

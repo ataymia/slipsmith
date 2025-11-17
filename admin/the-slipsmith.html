@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE Slipsmith - Admin Tool</title>
+    <style>
+        /* Root Variables - Dark Theme with Money Green */
+        :root {
+            --bg-primary: #0a0e0f;
+            --bg-secondary: #131a1d;
+            --bg-tertiary: #1a2528;
+            --bg-card: #1f2a2e;
+            
+            --text-primary: #e8f0f2;
+            --text-secondary: #a8b8bd;
+            --text-muted: #6b7e85;
+            
+            --accent-green: #00ff88;
+            --accent-green-dark: #00cc6d;
+            --accent-green-light: #4dffaa;
+            --accent-mint: #66ffcc;
+            
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --info: #44aaff;
+            --success: #00ff88;
+            
+            --border-color: #2a3a40;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .controls, .tabs, button, .no-print {
+                display: none !important;
+            }
+            .slip-container, .recap-container {
+                page-break-after: always;
+                background: white;
+                color: black;
+            }
+            .slip-header {
+                background: #1a2528 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-green);
+        }
+
+        .header h1 {
+            color: var(--accent-green);
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--accent-green-light);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-green);
+            border-bottom-color: var(--accent-green);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        button {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--accent-green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        button.btn-secondary:hover {
+            background: var(--bg-secondary);
+            box-shadow: none;
+        }
+
+        .slip-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .slip-header {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .slip-title {
+            font-size: 1.8rem;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .slip-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .event-group {
+            margin-bottom: 2rem;
+        }
+
+        .sport-header {
+            font-size: 1.2rem;
+            color: var(--accent-mint);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .event-card {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .game-info {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .event-time {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .pick-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .pick-item {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .pick-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .pick-value {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .pick-line {
+            color: var(--accent-green);
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-hit {
+            background: var(--success);
+            color: var(--bg-primary);
+        }
+
+        .badge-miss {
+            background: var(--danger);
+            color: white;
+        }
+
+        .badge-push {
+            background: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .badge-void {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .badge-pending {
+            background: var(--info);
+            color: white;
+        }
+
+        .result-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .result-actual {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .result-reason {
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+
+        .error-message {
+            background: var(--danger);
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .recap-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .recap-summary {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .sample-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 THE Slipsmith</h1>
+        <p>Morning Slip Renderer & Results Bot Grading Tool</p>
+    </div>
+
+    <div class="tabs no-print">
+        <button class="tab-btn active" data-tab="generate">Generate</button>
+        <button class="tab-btn" data-tab="results">Results</button>
+        <button class="tab-btn" data-tab="recap">Recap</button>
+    </div>
+
+    <!-- Generate Tab -->
+    <div id="generate-tab" class="tab-content active">
+        <div class="controls">
+            <h3 style="color: var(--accent-green); margin-bottom: 1rem;">📝 Slip JSON Input</h3>
+            <div class="control-row sample-buttons">
+                <button onclick="loadSampleNBA()">Load NBA Sample</button>
+                <button onclick="loadSampleNHL()">Load NHL Sample</button>
+                <button onclick="loadSampleNFL()">Load NFL Sample</button>
+                <button onclick="loadSampleSoccer()">Load Soccer Sample</button>
+                <button class="btn-secondary" onclick="loadFromStorage()">Load from Storage</button>
+            </div>
+            <div style="margin-top: 1rem;">
+                <textarea id="slip-json" placeholder='Paste your Slip JSON here...'></textarea>
+            </div>
+            <div class="control-row" style="margin-top: 1rem;">
+                <button onclick="renderSlip()">🎨 Render Slip</button>
+                <button onclick="saveToStorage()">💾 Save to Storage</button>
+                <button onclick="exportJSON()">⬇️ Download JSON</button>
+                <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
+            </div>
+        </div>
+
+        <div id="slip-output"></div>
+    </div>
+
+    <!-- Results Tab -->
+    <div id="results-tab" class="tab-content">
+        <div class="controls">
+            <h3 style="color: var(--accent-green); margin-bottom: 1rem;">📊 Grade Picks with Live Stats</h3>
+            <div class="control-row sample-buttons">
+                <button onclick="loadSampleNBA()">Load NBA Sample</button>
+                <button onclick="loadSampleNHL()">Load NHL Sample</button>
+                <button onclick="loadSampleNFL()">Load NFL Sample</button>
+                <button onclick="loadSampleSoccer()">Load Soccer Sample</button>
+                <button class="btn-secondary" onclick="loadFromStorage()">Load from Storage</button>
+            </div>
+            <div style="margin-top: 1rem;">
+                <textarea id="results-json" placeholder='Paste your Slip JSON here...'></textarea>
+            </div>
+            <div class="control-row" style="margin-top: 1rem;">
+                <button onclick="gradeSlip()">🔍 Grade Picks</button>
+                <button onclick="exportGradedJSON()">⬇️ Download Graded JSON</button>
+            </div>
+        </div>
+
+        <div id="results-output"></div>
+    </div>
+
+    <!-- Recap Tab -->
+    <div id="recap-tab" class="tab-content">
+        <div class="controls">
+            <h3 style="color: var(--accent-green); margin-bottom: 1rem;">📋 Recap Sheets</h3>
+            <div class="control-row sample-buttons">
+                <button onclick="loadSampleGraded()">Load Sample Graded JSON</button>
+                <button class="btn-secondary" onclick="loadFromStorage()">Load from Storage</button>
+            </div>
+            <div style="margin-top: 1rem;">
+                <textarea id="recap-json" placeholder='Paste your Graded Slip JSON here (with results)...'></textarea>
+            </div>
+            <div class="control-row" style="margin-top: 1rem;">
+                <button onclick="renderRecap()">📊 Render Recap</button>
+                <button class="btn-secondary" onclick="window.print()">🖨️ Print</button>
+            </div>
+        </div>
+
+        <div id="recap-output"></div>
+    </div>
+
+    <script>
+        // Global state and cache
+        const apiCache = {
+            nba: new Map(),
+            nhl: new Map(),
+            nfl: new Map(),
+            soccer: new Map()
+        };
+
+        let currentSlipData = null;
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                
+                // Update active states
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+
+        // Sample JSON data
+        const samples = {
+            nba: {
+                "slip_id": "NBA_2024_01_15",
+                "date": "2024-01-15",
+                "sport": "NBA",
+                "events": [
+                    {
+                        "event_id": "nba_lakers_warriors_20240115",
+                        "game_id": "LAL@GSW",
+                        "time": "10:00 PM ET",
+                        "player": "Stephen Curry",
+                        "team": "GSW",
+                        "market": "points",
+                        "line": 27.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nba_lakers_warriors_20240115_2",
+                        "game_id": "LAL@GSW",
+                        "time": "10:00 PM ET",
+                        "player": "LeBron James",
+                        "team": "LAL",
+                        "market": "assists",
+                        "line": 7.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nba_celtics_bucks_20240115",
+                        "game_id": "BOS@MIL",
+                        "time": "8:00 PM ET",
+                        "player": "Giannis Antetokounmpo",
+                        "team": "MIL",
+                        "market": "rebounds",
+                        "line": 11.5,
+                        "direction": "over"
+                    }
+                ]
+            },
+            nhl: {
+                "slip_id": "NHL_2024_01_15",
+                "date": "2024-01-15",
+                "sport": "NHL",
+                "events": [
+                    {
+                        "event_id": "nhl_leafs_bruins_20240115",
+                        "game_id": "TOR@BOS",
+                        "time": "7:00 PM ET",
+                        "player": "Auston Matthews",
+                        "team": "TOR",
+                        "market": "goals",
+                        "line": 0.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nhl_oilers_flames_20240115",
+                        "game_id": "EDM@CGY",
+                        "time": "9:00 PM ET",
+                        "player": "Connor McDavid",
+                        "team": "EDM",
+                        "market": "assists",
+                        "line": 1.5,
+                        "direction": "over"
+                    }
+                ]
+            },
+            nfl: {
+                "slip_id": "NFL_2024_01_14",
+                "date": "2024-01-14",
+                "sport": "NFL",
+                "events": [
+                    {
+                        "event_id": "nfl_chiefs_bills_20240114",
+                        "game_id": "KC@BUF",
+                        "time": "6:30 PM ET",
+                        "player": "Patrick Mahomes",
+                        "team": "KC",
+                        "market": "passing_yards",
+                        "line": 275.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "nfl_49ers_packers_20240114",
+                        "game_id": "SF@GB",
+                        "time": "8:15 PM ET",
+                        "player": "Christian McCaffrey",
+                        "team": "SF",
+                        "market": "rushing_yards",
+                        "line": 85.5,
+                        "direction": "over"
+                    }
+                ]
+            },
+            soccer: {
+                "slip_id": "SOCCER_2024_01_15",
+                "date": "2024-01-15",
+                "sport": "Soccer",
+                "league": "EPL",
+                "events": [
+                    {
+                        "event_id": "epl_arsenal_liverpool_20240115",
+                        "game_id": "Arsenal@Liverpool",
+                        "time": "3:00 PM ET",
+                        "player": "Mohamed Salah",
+                        "team": "Liverpool",
+                        "market": "goals",
+                        "line": 0.5,
+                        "direction": "over"
+                    },
+                    {
+                        "event_id": "epl_mancity_chelsea_20240115",
+                        "game_id": "Man City@Chelsea",
+                        "time": "5:30 PM ET",
+                        "player": "Erling Haaland",
+                        "team": "Man City",
+                        "market": "goals",
+                        "line": 0.5,
+                        "direction": "over"
+                    }
+                ]
+            }
+        };
+
+        // Load sample functions
+        function loadSampleNBA() {
+            document.getElementById('slip-json').value = JSON.stringify(samples.nba, null, 2);
+            document.getElementById('results-json').value = JSON.stringify(samples.nba, null, 2);
+        }
+
+        function loadSampleNHL() {
+            document.getElementById('slip-json').value = JSON.stringify(samples.nhl, null, 2);
+            document.getElementById('results-json').value = JSON.stringify(samples.nhl, null, 2);
+        }
+
+        function loadSampleNFL() {
+            document.getElementById('slip-json').value = JSON.stringify(samples.nfl, null, 2);
+            document.getElementById('results-json').value = JSON.stringify(samples.nfl, null, 2);
+        }
+
+        function loadSampleSoccer() {
+            document.getElementById('slip-json').value = JSON.stringify(samples.soccer, null, 2);
+            document.getElementById('results-json').value = JSON.stringify(samples.soccer, null, 2);
+        }
+
+        function loadSampleGraded() {
+            const graded = {
+                ...samples.nba,
+                events: samples.nba.events.map((ev, idx) => ({
+                    ...ev,
+                    result: idx === 0 ? 'HIT' : idx === 1 ? 'MISS' : 'PUSH',
+                    actual_value: idx === 0 ? 32 : idx === 1 ? 6 : 7.5,
+                    reason: idx === 0 ? 'Player scored 32 points' : idx === 1 ? 'Player had 6 assists' : 'Exact line hit'
+                }))
+            };
+            document.getElementById('recap-json').value = JSON.stringify(graded, null, 2);
+        }
+
+        // Storage functions
+        function saveToStorage() {
+            const json = document.getElementById('slip-json').value;
+            try {
+                JSON.parse(json);
+                localStorage.setItem('slipsmith_last_json', json);
+                showMessage('success', 'Saved to browser storage!');
+            } catch (e) {
+                showMessage('error', 'Invalid JSON: ' + e.message);
+            }
+        }
+
+        function loadFromStorage() {
+            const json = localStorage.getItem('slipsmith_last_json');
+            if (json) {
+                document.getElementById('slip-json').value = json;
+                document.getElementById('results-json').value = json;
+                document.getElementById('recap-json').value = json;
+                showMessage('success', 'Loaded from storage!');
+            } else {
+                showMessage('error', 'No saved data found');
+            }
+        }
+
+        function exportJSON() {
+            const json = document.getElementById('slip-json').value;
+            try {
+                JSON.parse(json);
+                downloadJSON(json, 'slip.json');
+            } catch (e) {
+                showMessage('error', 'Invalid JSON: ' + e.message);
+            }
+        }
+
+        function exportGradedJSON() {
+            if (currentSlipData) {
+                downloadJSON(JSON.stringify(currentSlipData, null, 2), 'graded-slip.json');
+            } else {
+                showMessage('error', 'Grade picks first!');
+            }
+        }
+
+        function downloadJSON(content, filename) {
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Render slip (Generate tab)
+        function renderSlip() {
+            const json = document.getElementById('slip-json').value;
+            const output = document.getElementById('slip-output');
+            
+            try {
+                const slip = JSON.parse(json);
+                currentSlipData = slip;
+                
+                // Group events by sport or game
+                const eventsBySport = {};
+                slip.events.forEach(ev => {
+                    const sport = slip.sport || 'Unknown';
+                    if (!eventsBySport[sport]) {
+                        eventsBySport[sport] = [];
+                    }
+                    eventsBySport[sport].push(ev);
+                });
+
+                let html = `
+                    <div class="slip-container">
+                        <div class="slip-header">
+                            <div class="slip-title">${slip.slip_id || 'Untitled Slip'}</div>
+                            <div class="slip-meta">
+                                📅 ${slip.date || 'No date'} | 
+                                🏀 ${slip.sport || 'Multi-Sport'} | 
+                                📊 ${slip.events.length} Pick${slip.events.length !== 1 ? 's' : ''}
+                            </div>
+                        </div>
+                `;
+
+                Object.keys(eventsBySport).forEach(sport => {
+                    html += `<div class="event-group">
+                        <div class="sport-header">${sport}</div>`;
+                    
+                    eventsBySport[sport].forEach(ev => {
+                        html += renderEventCard(ev);
+                    });
+                    
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                output.innerHTML = html;
+                showMessage('success', 'Slip rendered successfully!');
+            } catch (e) {
+                output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        function renderEventCard(event) {
+            return `
+                <div class="event-card">
+                    <div class="event-header">
+                        <div class="game-info">🏟️ ${event.game_id || 'N/A'}</div>
+                        <div class="event-time">⏰ ${event.time || 'TBD'}</div>
+                    </div>
+                    <div class="pick-details">
+                        <div class="pick-item">
+                            <div class="pick-label">Player</div>
+                            <div class="pick-value">${event.player || 'N/A'}</div>
+                        </div>
+                        <div class="pick-item">
+                            <div class="pick-label">Team</div>
+                            <div class="pick-value">${event.team || 'N/A'}</div>
+                        </div>
+                        <div class="pick-item">
+                            <div class="pick-label">Market</div>
+                            <div class="pick-value">${formatMarket(event.market)}</div>
+                        </div>
+                        <div class="pick-item">
+                            <div class="pick-label">Pick</div>
+                            <div class="pick-line">${event.direction?.toUpperCase() || 'N/A'} ${event.line || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatMarket(market) {
+            if (!market) return 'N/A';
+            return market.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Grade picks (Results tab)
+        async function gradeSlip() {
+            const json = document.getElementById('results-json').value;
+            const output = document.getElementById('results-output');
+            
+            try {
+                const slip = JSON.parse(json);
+                output.innerHTML = '<div class="loading">Grading picks, fetching live stats</div>';
+                
+                // Grade each event
+                const gradedEvents = [];
+                for (const event of slip.events) {
+                    const gradedEvent = await gradeEvent(event, slip.sport, slip.date);
+                    gradedEvents.push(gradedEvent);
+                }
+                
+                slip.events = gradedEvents;
+                currentSlipData = slip;
+                
+                // Render graded results
+                renderGradedResults(slip);
+                
+            } catch (e) {
+                output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        async function gradeEvent(event, sport, date) {
+            const graded = { ...event };
+            
+            try {
+                let stats;
+                
+                switch (sport?.toUpperCase()) {
+                    case 'NBA':
+                        stats = await fetchNBAStats(event, date);
+                        break;
+                    case 'NHL':
+                        stats = await fetchNHLStats(event, date);
+                        break;
+                    case 'NFL':
+                        stats = await fetchNFLStats(event, date);
+                        break;
+                    case 'SOCCER':
+                        stats = await fetchSoccerStats(event, date);
+                        break;
+                    default:
+                        graded.result = 'VOID';
+                        graded.reason = `Unsupported sport: ${sport}`;
+                        return graded;
+                }
+                
+                if (stats.error) {
+                    graded.result = 'PENDING';
+                    graded.reason = stats.error;
+                    return graded;
+                }
+                
+                graded.actual_value = stats.value;
+                graded.result = determineResult(event.direction, event.line, stats.value);
+                graded.reason = stats.reason || `Player ${stats.value} ${event.market}`;
+                
+            } catch (e) {
+                graded.result = 'PENDING';
+                graded.reason = `Error: ${e.message}`;
+            }
+            
+            return graded;
+        }
+
+        function determineResult(direction, line, actual) {
+            if (actual === null || actual === undefined) {
+                return 'VOID';
+            }
+            
+            const lineNum = parseFloat(line);
+            const actualNum = parseFloat(actual);
+            
+            if (isNaN(lineNum) || isNaN(actualNum)) {
+                return 'VOID';
+            }
+            
+            if (actualNum === lineNum) {
+                return 'PUSH';
+            }
+            
+            if (direction?.toLowerCase() === 'over') {
+                return actualNum > lineNum ? 'HIT' : 'MISS';
+            } else if (direction?.toLowerCase() === 'under') {
+                return actualNum < lineNum ? 'HIT' : 'MISS';
+            }
+            
+            return 'VOID';
+        }
+
+        function renderGradedResults(slip) {
+            const output = document.getElementById('results-output');
+            
+            let html = `
+                <div class="slip-container">
+                    <div class="slip-header">
+                        <div class="slip-title">📊 ${slip.slip_id || 'Graded Results'}</div>
+                        <div class="slip-meta">
+                            📅 ${slip.date || 'No date'} | 
+                            🏀 ${slip.sport || 'Multi-Sport'}
+                        </div>
+                    </div>
+            `;
+
+            slip.events.forEach(ev => {
+                html += `
+                    <div class="event-card">
+                        <div class="event-header">
+                            <div class="game-info">🏟️ ${ev.game_id || 'N/A'}</div>
+                            <span class="status-badge badge-${ev.result?.toLowerCase() || 'pending'}">${ev.result || 'PENDING'}</span>
+                        </div>
+                        <div class="pick-details">
+                            <div class="pick-item">
+                                <div class="pick-label">Player</div>
+                                <div class="pick-value">${ev.player || 'N/A'}</div>
+                            </div>
+                            <div class="pick-item">
+                                <div class="pick-label">Market</div>
+                                <div class="pick-value">${formatMarket(ev.market)}</div>
+                            </div>
+                            <div class="pick-item">
+                                <div class="pick-label">Pick</div>
+                                <div class="pick-line">${ev.direction?.toUpperCase() || 'N/A'} ${ev.line || 'N/A'}</div>
+                            </div>
+                            <div class="pick-item">
+                                <div class="pick-label">Actual</div>
+                                <div class="result-actual">${ev.actual_value !== undefined ? ev.actual_value : 'N/A'}</div>
+                            </div>
+                        </div>
+                        ${ev.reason ? `<div class="result-reason">📝 ${ev.reason}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            output.innerHTML = html;
+        }
+
+        // Render recap (Recap tab)
+        function renderRecap() {
+            const json = document.getElementById('recap-json').value;
+            const output = document.getElementById('recap-output');
+            
+            try {
+                const slip = JSON.parse(json);
+                
+                // Calculate summary
+                const summary = {
+                    total: slip.events.length,
+                    hit: slip.events.filter(e => e.result === 'HIT').length,
+                    miss: slip.events.filter(e => e.result === 'MISS').length,
+                    push: slip.events.filter(e => e.result === 'PUSH').length,
+                    void: slip.events.filter(e => e.result === 'VOID').length,
+                    pending: slip.events.filter(e => e.result === 'PENDING').length
+                };
+
+                let html = `
+                    <div class="recap-container">
+                        <div class="slip-header">
+                            <div class="slip-title">📋 ${slip.slip_id || 'Recap Sheet'}</div>
+                            <div class="slip-meta">📅 ${slip.date || 'No date'}</div>
+                        </div>
+                        
+                        <div class="recap-summary">
+                            <div class="summary-item">
+                                <div class="summary-label">Total</div>
+                                <div class="summary-value">${summary.total}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">✅ Hit</div>
+                                <div class="summary-value" style="color: var(--success);">${summary.hit}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">❌ Miss</div>
+                                <div class="summary-value" style="color: var(--danger);">${summary.miss}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">⚖️ Push</div>
+                                <div class="summary-value" style="color: var(--warning);">${summary.push}</div>
+                            </div>
+                            ${summary.void > 0 ? `
+                            <div class="summary-item">
+                                <div class="summary-label">⚫ Void</div>
+                                <div class="summary-value" style="color: var(--text-muted);">${summary.void}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                `;
+
+                slip.events.forEach(ev => {
+                    html += `
+                        <div class="event-card">
+                            <div class="event-header">
+                                <div class="game-info">${ev.player || 'N/A'} - ${formatMarket(ev.market)}</div>
+                                <span class="status-badge badge-${ev.result?.toLowerCase() || 'void'}">${ev.result || 'VOID'}</span>
+                            </div>
+                            <div class="pick-details">
+                                <div class="pick-item">
+                                    <div class="pick-label">Line</div>
+                                    <div class="pick-line">${ev.direction?.toUpperCase() || 'N/A'} ${ev.line || 'N/A'}</div>
+                                </div>
+                                <div class="pick-item">
+                                    <div class="pick-label">Actual</div>
+                                    <div class="result-actual">${ev.actual_value !== undefined ? ev.actual_value : 'N/A'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                output.innerHTML = html;
+                showMessage('success', 'Recap rendered successfully!');
+                
+            } catch (e) {
+                output.innerHTML = `<div class="error-message">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        // API Integration Functions
+
+        // NBA - balldontlie.io
+        async function fetchNBAStats(event, date) {
+            try {
+                // Note: balldontlie API v1 may require different approach
+                // This is a placeholder implementation showing the structure
+                const cacheKey = `${event.player}_${date}_${event.market}`;
+                
+                if (apiCache.nba.has(cacheKey)) {
+                    return apiCache.nba.get(cacheKey);
+                }
+
+                // For demonstration, return mock data
+                // In production, implement actual API calls
+                const result = {
+                    value: Math.floor(Math.random() * 40),
+                    reason: `API Note: balldontlie.io requires actual implementation with proper endpoints. This is mock data.`
+                };
+                
+                apiCache.nba.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NBA API error: ${e.message}` };
+            }
+        }
+
+        // NHL - statsapi.web.nhl.com
+        async function fetchNHLStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}`;
+                
+                if (apiCache.nhl.has(cacheKey)) {
+                    return apiCache.nhl.get(cacheKey);
+                }
+
+                // Mock implementation - replace with actual NHL API calls
+                const result = {
+                    value: Math.floor(Math.random() * 3),
+                    reason: `NHL API Note: statsapi.web.nhl.com requires game ID mapping. This is mock data.`
+                };
+                
+                apiCache.nhl.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NHL API error: ${e.message}. Possible CORS issue.` };
+            }
+        }
+
+        // NFL - ESPN API
+        async function fetchNFLStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}_${event.market}`;
+                
+                if (apiCache.nfl.has(cacheKey)) {
+                    return apiCache.nfl.get(cacheKey);
+                }
+
+                // Parse game_id to get teams
+                const teams = event.game_id.split('@');
+                if (teams.length !== 2) {
+                    return { error: 'Invalid game_id format. Use VIS@HOME format.' };
+                }
+
+                // Mock implementation - replace with actual ESPN API calls
+                // ESPN endpoints: site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+                const result = {
+                    value: Math.floor(Math.random() * 300),
+                    reason: `ESPN NFL API Note: Requires mapping VIS@HOME to event IDs via scoreboard. This is mock data. May encounter CORS issues.`
+                };
+                
+                apiCache.nfl.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `NFL API error: ${e.message}. ESPN API may have CORS restrictions.` };
+            }
+        }
+
+        // Soccer - ESPN API
+        async function fetchSoccerStats(event, date) {
+            try {
+                const cacheKey = `${event.game_id}_${event.player}_${event.market}`;
+                
+                if (apiCache.soccer.has(cacheKey)) {
+                    return apiCache.soccer.get(cacheKey);
+                }
+
+                // Mock implementation - replace with actual ESPN Soccer API calls
+                const result = {
+                    value: Math.floor(Math.random() * 3),
+                    reason: `ESPN Soccer API Note: Requires league-specific endpoints and event ID mapping. This is mock data. CORS may apply.`
+                };
+                
+                apiCache.soccer.set(cacheKey, result);
+                return result;
+                
+            } catch (e) {
+                return { error: `Soccer API error: ${e.message}. ESPN API may have CORS restrictions.` };
+            }
+        }
+
+        // Utility functions
+        function showMessage(type, message) {
+            const existingMessages = document.querySelectorAll('.success-message, .error-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = type === 'success' ? 'success-message' : 'error-message';
+            msgDiv.textContent = message;
+            
+            const activeTab = document.querySelector('.tab-content.active');
+            const controls = activeTab.querySelector('.controls');
+            controls.appendChild(msgDiv);
+            
+            setTimeout(() => msgDiv.remove(), 5000);
+        }
+
+        // Initialize
+        console.log('THE Slipsmith loaded successfully!');
+        console.log('Note: Sports API integrations are using mock data. Implement actual API calls for production use.');
+    </script>
+</body>
+</html>
