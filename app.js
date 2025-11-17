@@ -745,6 +745,12 @@ function initPortalPage() {
 
   if (authRequired) authRequired.style.display = "none";
   if (portalContent) portalContent.style.display = "block";
+  
+  // Update presence on portal page
+  updatePresence();
+  
+  // Update presence every 2 minutes
+  setInterval(updatePresence, 2 * 60 * 1000);
 
   // Display user info
   const userInfo = document.getElementById("user-info");
@@ -772,6 +778,157 @@ function initPortalPage() {
 
   // Initialize slip request section
   initSlipRequestForPortal();
+  
+  // Initialize sports feed
+  initSportsFeed();
+}
+
+// ============================================================================
+// LIVE SPORTS FEED
+// ============================================================================
+
+let currentSportFilter = 'all';
+
+function initSportsFeed() {
+  const filterButtons = document.querySelectorAll('.sport-filter-btn');
+  const feedContainer = document.getElementById('feed-items-container');
+  
+  if (!filterButtons || !feedContainer) return;
+  
+  // Setup filter buttons
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active button
+      filterButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Update filter
+      currentSportFilter = btn.getAttribute('data-sport');
+      loadSportsFeed();
+    });
+  });
+  
+  // Load initial feed
+  loadSportsFeed();
+}
+
+async function loadSportsFeed() {
+  const feedContainer = document.getElementById('feed-items-container');
+  if (!feedContainer) return;
+  
+  try {
+    feedContainer.innerHTML = '<div class="no-feed-items">Loading sports news...</div>';
+    
+    // Query feed collection
+    let query = db.collection('feed').orderBy('publishedAt', 'desc').limit(50);
+    
+    // Apply sport filter if not 'all'
+    if (currentSportFilter !== 'all') {
+      query = query.where('sport', '==', currentSportFilter);
+    }
+    
+    const snapshot = await query.get();
+    
+    if (snapshot.empty) {
+      feedContainer.innerHTML = `
+        <div class="no-feed-items">
+          <p>No ${currentSportFilter === 'all' ? '' : currentSportFilter + ' '}news available yet.</p>
+          <p style="margin-top: 0.5rem; font-size: 0.9rem;">Sports news integration coming soon! This will include:</p>
+          <ul style="text-align: left; margin-top: 0.5rem; padding-left: 2rem;">
+            <li>Injury reports & updates</li>
+            <li>Player suspensions</li>
+            <li>Line movements</li>
+            <li>Depth chart changes</li>
+            <li>Breaking news & analysis</li>
+          </ul>
+        </div>
+      `;
+      return;
+    }
+    
+    const feedItems = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    renderFeedItems(feedItems);
+  } catch (error) {
+    console.error('Error loading sports feed:', error);
+    feedContainer.innerHTML = `
+      <div class="no-feed-items">
+        <p>Unable to load sports feed at this time.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Please try again later.</p>
+      </div>
+    `;
+  }
+}
+
+function renderFeedItems(items) {
+  const feedContainer = document.getElementById('feed-items-container');
+  if (!feedContainer) return;
+  
+  if (items.length === 0) {
+    feedContainer.innerHTML = '<div class="no-feed-items">No news items found.</div>';
+    return;
+  }
+  
+  feedContainer.innerHTML = items.map(item => {
+    const typeIcon = getFeedTypeIcon(item.type);
+    const publishedDate = item.publishedAt?.toDate ? 
+      item.publishedAt.toDate().toLocaleString() : 
+      new Date(item.publishedAt).toLocaleString();
+    
+    return `
+      <div class="feed-item ${item.type || 'news'}">
+        <div class="feed-item-header">
+          <span class="feed-item-type ${item.type || 'news'}">
+            ${typeIcon} ${item.type || 'news'}
+          </span>
+          <span class="feed-item-sport">${item.sport || 'Sports'}</span>
+        </div>
+        <div class="feed-item-headline">${item.headline || 'No headline'}</div>
+        ${item.details ? `<div class="feed-item-details">${item.details}</div>` : ''}
+        ${item.player ? `<div class="feed-item-details"><strong>Player:</strong> ${item.player}</div>` : ''}
+        ${item.team ? `<div class="feed-item-details"><strong>Team:</strong> ${item.team}</div>` : ''}
+        <div class="feed-item-footer">
+          <span>${publishedDate}</span>
+          ${item.url ? `<a href="${item.url}" target="_blank" class="feed-item-link">Read more →</a>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getFeedTypeIcon(type) {
+  const icons = {
+    injury: '🚑',
+    suspension: '⚠️',
+    news: '📰',
+    line_movement: '📊',
+    depth_chart: '📋'
+  };
+  return icons[type] || '📰';
+}
+
+// Listen for real-time updates to the feed
+function setupFeedListener() {
+  if (!db) return;
+  
+  let query = db.collection('feed').orderBy('publishedAt', 'desc').limit(50);
+  
+  if (currentSportFilter !== 'all') {
+    query = query.where('sport', '==', currentSportFilter);
+  }
+  
+  query.onSnapshot((snapshot) => {
+    const feedItems = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    renderFeedItems(feedItems);
+  }, (error) => {
+    console.error('Error listening to feed updates:', error);
+  });
 }
 
 // ============================================================================
@@ -1346,6 +1503,53 @@ function initAccountPage() {
 }
 
 // ============================================================================
+// PRESENCE TRACKING
+// ============================================================================
+
+// Update user's last seen timestamp
+async function updatePresence() {
+  if (!currentUser || !currentUserDoc) return;
+  
+  try {
+    await db.collection('users').doc(currentUser.uid).update({
+      lastSeen: getServerTimestamp()
+    });
+    console.log('Presence updated');
+  } catch (error) {
+    console.error('Error updating presence:', error);
+  }
+}
+
+// Check if user is online (last seen < 5 minutes ago)
+function isUserOnline(lastSeen) {
+  if (!lastSeen) return false;
+  
+  const lastSeenDate = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
+  const now = new Date();
+  const diffMinutes = (now - lastSeenDate) / (1000 * 60);
+  
+  return diffMinutes < 5;
+}
+
+// Format last seen time
+function formatLastSeen(lastSeen) {
+  if (!lastSeen) return 'Never';
+  
+  const lastSeenDate = lastSeen.toDate ? lastSeen.toDate() : new Date(lastSeen);
+  const now = new Date();
+  const diffMs = now - lastSeenDate;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return lastSeenDate.toLocaleDateString();
+}
+
+// ============================================================================
 // INBOX PAGE
 // ============================================================================
 
@@ -1364,6 +1568,12 @@ function initInboxPage() {
 
   if (authRequired) authRequired.style.display = "none";
   if (inboxContent) inboxContent.style.display = "block";
+
+  // Update presence on page load
+  updatePresence();
+  
+  // Update presence every 2 minutes
+  setInterval(updatePresence, 2 * 60 * 1000);
 
   // Initialize tabs
   initInboxTabs();
@@ -1887,8 +2097,9 @@ function loadFriends() {
         const friendName = friendData.username || friendData.email || 'Unknown';
         const initial = friendName.charAt(0).toUpperCase();
         
-        // Check online status (simplified - would need real presence system)
-        const isOnline = false; // Placeholder
+        // Check online status using lastSeen
+        const isOnline = isUserOnline(friendData.lastSeen);
+        const statusText = isOnline ? 'Online' : formatLastSeen(friendData.lastSeen);
         
         div.innerHTML = `
           <div class="friend-info">
@@ -1897,7 +2108,7 @@ function loadFriends() {
               <div class="friend-name">${friendName}</div>
               <div class="friend-status">
                 <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}"></span>
-                ${isOnline ? 'Online' : 'Offline'}
+                ${statusText}
               </div>
             </div>
           </div>
