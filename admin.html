@@ -69,7 +69,9 @@
 
                                     <div class="form-group">
                                         <label for="post-media">Upload Media (optional)</label>
-                                        <input type="file" id="post-media" accept="image/*,video/*,.pdf,.doc,.docx">
+                                        <input type="file" id="post-media" accept="image/*,video/*,.pdf,.doc,.docx" style="display: none;">
+                                        <button type="button" id="post-media-button" class="btn btn-outline btn-sm">📎 Choose File</button>
+                                        <span id="post-media-filename" style="margin-left: 0.5rem; color: var(--text-secondary);"></span>
                                         <small class="form-hint">Images, videos, or documents</small>
                                     </div>
 
@@ -368,25 +370,49 @@
                 return;
             }
 
-            container.innerHTML = users.map(user => `
-                <div class="admin-item">
-                    <div class="item-content">
-                        <h3>${user.email}</h3>
-                        <div class="item-meta">
-                            <span class="tier-badge tier-${user.tier}">${user.tier.toUpperCase()}</span>
-                            ${user.role === 'admin' ? '<span class="badge-admin">ADMIN</span>' : ''}
-                            <span>📅 Joined ${new Date(user.createdAt).toLocaleDateString()}</span>
+            container.innerHTML = users.map(user => {
+                // Handle Firebase Timestamp conversion
+                let joinedDate = 'Unknown';
+                if (user.createdAt) {
+                    try {
+                        // Check if it's a Firebase Timestamp object with toDate() method
+                        if (user.createdAt.toDate && typeof user.createdAt.toDate === 'function') {
+                            joinedDate = user.createdAt.toDate().toLocaleDateString();
+                        } 
+                        // Check if it's already a number (milliseconds)
+                        else if (typeof user.createdAt === 'number') {
+                            joinedDate = new Date(user.createdAt).toLocaleDateString();
+                        }
+                        // Try converting to Date directly
+                        else {
+                            joinedDate = new Date(user.createdAt).toLocaleDateString();
+                        }
+                    } catch (e) {
+                        console.error('Error converting createdAt date:', e, user.createdAt);
+                        joinedDate = 'Invalid Date';
+                    }
+                }
+                
+                return `
+                    <div class="admin-item">
+                        <div class="item-content">
+                            <h3>${user.email}</h3>
+                            <div class="item-meta">
+                                <span class="tier-badge tier-${user.tier}">${user.tier.toUpperCase()}</span>
+                                ${user.role === 'admin' ? '<span class="badge-admin">ADMIN</span>' : ''}
+                                <span>📅 Joined ${joinedDate}</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <select onchange="updateUserTier('${user.uid}', this.value)" class="tier-select">
+                                <option value="starter" ${user.tier === 'starter' ? 'selected' : ''}>Starter</option>
+                                <option value="pro" ${user.tier === 'pro' ? 'selected' : ''}>Pro</option>
+                                <option value="vip" ${user.tier === 'vip' ? 'selected' : ''}>VIP</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="item-actions">
-                        <select onchange="updateUserTier('${user.uid}', this.value)" class="tier-select">
-                            <option value="starter" ${user.tier === 'starter' ? 'selected' : ''}>Starter</option>
-                            <option value="pro" ${user.tier === 'pro' ? 'selected' : ''}>Pro</option>
-                            <option value="vip" ${user.tier === 'vip' ? 'selected' : ''}>VIP</option>
-                        </select>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Filter users by tier
@@ -519,6 +545,26 @@
             document.getElementById('current-media').style.display = 'none';
             // Note: Actual media deletion would be handled on save
         });
+
+        // Handle post media file upload button
+        const postMediaButton = document.getElementById('post-media-button');
+        const postMediaInput = document.getElementById('post-media');
+        const postMediaFilename = document.getElementById('post-media-filename');
+        
+        if (postMediaButton && postMediaInput) {
+            postMediaButton.addEventListener('click', () => {
+                postMediaInput.click();
+            });
+            
+            postMediaInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    postMediaFilename.textContent = file.name;
+                } else {
+                    postMediaFilename.textContent = '';
+                }
+            });
+        }
 
         // Logout handler
         document.getElementById('logout-button').addEventListener('click', async (e) => {
