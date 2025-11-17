@@ -15,6 +15,47 @@ if (!auth || !db) {
 }
 
 // ============================================================================
+// COMPATIBILITY HELPERS
+// ============================================================================
+
+/**
+ * Safely get server timestamp with fallback
+ * Returns firebase.firestore.FieldValue.serverTimestamp() if available,
+ * otherwise returns Date.now() as fallback
+ */
+function getServerTimestamp() {
+  try {
+    if (typeof firebase !== 'undefined' && 
+        firebase.firestore && 
+        firebase.firestore.FieldValue && 
+        firebase.firestore.FieldValue.serverTimestamp) {
+      return firebase.firestore.FieldValue.serverTimestamp();
+    }
+    console.warn("firebase.firestore.FieldValue.serverTimestamp() not available, using Date.now() fallback");
+    return Date.now();
+  } catch (err) {
+    console.error("Error accessing serverTimestamp, using Date.now() fallback:", err);
+    return Date.now();
+  }
+}
+
+/**
+ * Compatible sign-in wrapper
+ * Attempts auth.signInWithEmailAndPassword if available, otherwise throws clear error
+ */
+async function signInCompat(email, password) {
+  if (!auth) {
+    throw new Error("Firebase Auth not initialized. Check firebase.js is loaded.");
+  }
+  
+  if (typeof auth.signInWithEmailAndPassword === 'function') {
+    return await auth.signInWithEmailAndPassword(email, password);
+  }
+  
+  throw new Error("auth.signInWithEmailAndPassword is not available. Ensure Firebase compat SDK is loaded correctly.");
+}
+
+// ============================================================================
 // PAGE DETECTION
 // ============================================================================
 
@@ -93,12 +134,39 @@ auth.onAuthStateChanged(async (user) => {
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists) {
-      console.error("User profile not found in Firestore for uid:", user.uid);
-      await auth.signOut();
-      if (page !== "login") {
-        window.location.href = "login.html";
-      } else {
+      console.error("============================================================");
+      console.error("PROFILE ERROR: User profile not found in Firestore");
+      console.error("User UID:", user.uid);
+      console.error("User Email:", user.email);
+      console.error("This user is authenticated but has no Firestore profile document.");
+      console.error("Action needed: Create a profile document or contact support.");
+      console.error("============================================================");
+      
+      // DO NOT sign out - instead show error to user
+      currentUserDoc = null;
+      updateAdminLinkVisibility();
+      
+      if (page === "login") {
+        // Show error on login page
         initLoginPage();
+        const errorDiv = document.getElementById("login-error");
+        if (errorDiv) {
+          errorDiv.textContent = "Your account exists but profile setup is incomplete. Please contact support.";
+          errorDiv.style.display = "block";
+        }
+      } else if (page === "portal" || page === "admin") {
+        // Show auth required message on protected pages
+        const authRequired = document.getElementById("auth-required");
+        if (authRequired) {
+          authRequired.innerHTML = `
+            <h2>⚠️ Profile Setup Required</h2>
+            <p>Your account is authenticated but your profile is incomplete.</p>
+            <p>User: ${user.email}</p>
+            <p>Please contact support to complete your profile setup.</p>
+            <button onclick="auth.signOut().then(() => window.location.href = 'login.html')" class="btn btn-primary">Sign Out</button>
+          `;
+          authRequired.style.display = "block";
+        }
       }
       return;
     }
@@ -221,7 +289,7 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
 
       try {
         setLoginLoading(true);
-        const result = await auth.signInWithEmailAndPassword(email, password);
+        const result = await signInCompat(email, password);
         const user = result.user;
 
         const userDocRef = db.collection("users").doc(user.uid);
