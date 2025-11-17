@@ -831,13 +831,14 @@ async function initializeChat() {
   onChatMessages((messages) => {
     messagesContainer.innerHTML = messages.map(msg => {
       const isOwn = msg.userId === currentUser.uid;
+      const canDelete = isAdmin || isOwn;
       const imageHtml = msg.imageUrl ? `
         <div class="message-image">
           <img src="${msg.imageUrl}" alt="Shared image" onclick="window.open('${msg.imageUrl}', '_blank')">
         </div>
       ` : '';
       
-      const deleteBtn = isAdmin ? `
+      const deleteBtn = canDelete ? `
         <button class="btn-delete-message" onclick="window.deleteChatMessageById('${msg.id}')">Delete</button>
       ` : '';
       
@@ -884,6 +885,7 @@ async function initializeChat() {
       if (selectedImage) {
         const uploadResult = await uploadChatImage(selectedImage);
         messageData.imageUrl = uploadResult.url;
+        messageData.imagePath = uploadResult.path;
       }
 
       await sendChatMessage(messageData);
@@ -1469,9 +1471,13 @@ async function getPostsByTier(userTier) {
 
 async function uploadChatImage(file) {
   try {
+    if (!currentUser) {
+      throw new Error('Must be logged in to upload images');
+    }
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
-    const storageRef = storage.ref(`chat/${fileName}`);
+    const storagePath = `chatImages/${currentUser.uid}/${fileName}`;
+    const storageRef = storage.ref(storagePath);
 
     console.log('Uploading chat image:', fileName);
     const snapshot = await storageRef.put(file);
@@ -1480,6 +1486,7 @@ async function uploadChatImage(file) {
     console.log('Chat image uploaded successfully:', downloadURL);
     return {
       url: downloadURL,
+      path: storagePath,
       name: fileName,
       type: file.type,
       size: file.size
@@ -1499,14 +1506,23 @@ async function deleteChatMessage(messageId) {
       const messageData = messageDoc.data();
       
       // Delete the image from storage if it exists
-      if (messageData.imageUrl) {
+      if (messageData.imagePath) {
+        try {
+          const storageRef = storage.ref(messageData.imagePath);
+          await storageRef.delete();
+          console.log('Chat image deleted from storage:', messageData.imagePath);
+        } catch (storageError) {
+          console.warn('Could not delete image from storage:', storageError);
+          // Continue with message deletion even if image deletion fails
+        }
+      } else if (messageData.imageUrl) {
+        // Fallback to trying to delete by URL for old messages
         try {
           const storageRef = storage.refFromURL(messageData.imageUrl);
           await storageRef.delete();
           console.log('Chat image deleted from storage:', messageData.imageUrl);
         } catch (storageError) {
           console.warn('Could not delete image from storage:', storageError);
-          // Continue with message deletion even if image deletion fails
         }
       }
       
@@ -1629,8 +1645,19 @@ function formatTime(timestamp) {
 
 // Wrapper function for delete that can be called from onclick
 window.deleteChatMessageById = async function(messageId) {
-  if (!currentUserDoc || currentUserDoc.role !== 'admin') {
-    alert('Only admins can delete messages.');
+  // Get message to check ownership
+  const messageDoc = await db.collection('chat').doc(messageId).get();
+  if (!messageDoc.exists) {
+    alert('Message not found.');
+    return;
+  }
+  
+  const messageData = messageDoc.data();
+  const isOwn = messageData.userId === currentUser.uid;
+  const isAdmin = currentUserDoc && currentUserDoc.role === 'admin';
+  
+  if (!isAdmin && !isOwn) {
+    alert('You can only delete your own messages.');
     return;
   }
   
