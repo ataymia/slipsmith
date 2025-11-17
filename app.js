@@ -15,6 +15,98 @@ if (!auth || !db) {
 }
 
 // ============================================================================
+// AUTH HELPER - Centralized authentication state management
+// ============================================================================
+
+const Auth = {
+  /**
+   * Get the current authentication token from localStorage
+   * @returns {string|null} The token if it exists, null otherwise
+   */
+  getToken: function() {
+    return localStorage.getItem('authToken');
+  },
+
+  /**
+   * Set the authentication token in localStorage
+   * @param {string} token - The token to store
+   */
+  setToken: function(token) {
+    if (token) {
+      localStorage.setItem('authToken', token);
+    }
+  },
+
+  /**
+   * Clear the authentication token from localStorage
+   */
+  clearToken: function() {
+    localStorage.removeItem('authToken');
+  },
+
+  /**
+   * Check if user is authenticated
+   * @returns {boolean} True if user is authenticated, false otherwise
+   */
+  isAuthenticated: function() {
+    // Check both Firebase auth state and our token
+    return !!(currentUser && currentUserDoc);
+  }
+};
+
+/**
+ * Update the UI based on authentication state
+ * This function shows/hides UI elements based on whether user is logged in
+ */
+function updateAuthUI() {
+  const isAuth = Auth.isAuthenticated();
+  
+  // Get all UI elements that need to be shown/hidden
+  const accountLinks = document.querySelectorAll('#account-link, #account-btn');
+  const logoutButtons = document.querySelectorAll('#logout-button, #logout-btn');
+  const loginLinks = document.querySelectorAll('a[href="login.html"]');
+  
+  // Show/hide account links
+  accountLinks.forEach(el => {
+    if (el) {
+      if (isAuth) {
+        el.classList.remove('hidden');
+        el.style.display = ''; // Clear inline styles
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+  });
+  
+  // Show/hide logout buttons
+  logoutButtons.forEach(el => {
+    if (el) {
+      if (isAuth) {
+        el.classList.remove('hidden');
+        el.style.display = ''; // Clear inline styles
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+  });
+  
+  // Show/hide login links (opposite of account/logout)
+  loginLinks.forEach(el => {
+    if (el) {
+      if (isAuth) {
+        el.classList.add('hidden');
+      } else {
+        el.classList.remove('hidden');
+        el.style.display = ''; // Clear inline styles
+      }
+    }
+  });
+  
+  // Update admin link visibility (existing functionality)
+  updateAdminLinkVisibility();
+}
+
+// ============================================================================
 // COMPATIBILITY HELPERS
 // ============================================================================
 
@@ -91,23 +183,14 @@ let currentUserDoc = null; // Firestore user document data
 
 function updateAdminLinkVisibility() {
   const adminLink = document.getElementById("admin-link");
-  const accountLink = document.getElementById("account-link");
   
   // Show admin link only for admins
   if (adminLink) {
     if (currentUser && currentUserDoc && currentUserDoc.role === "admin") {
-      adminLink.style.display = "inline-block";
+      adminLink.classList.remove('hidden');
+      adminLink.style.display = "";
     } else {
-      adminLink.style.display = "none";
-    }
-  }
-  
-  // Show account link only for logged-in users
-  if (accountLink) {
-    if (currentUser && currentUserDoc) {
-      accountLink.style.display = "inline-block";
-    } else {
-      accountLink.style.display = "none";
+      adminLink.classList.add('hidden');
     }
   }
 }
@@ -122,7 +205,8 @@ auth.onAuthStateChanged(async (user) => {
 
   if (!user) {
     currentUserDoc = null;
-    updateAdminLinkVisibility();
+    Auth.clearToken();
+    updateAuthUI();
 
     // Protected pages go to login
     if (page === "portal" || page === "admin" || page === "account") {
@@ -157,7 +241,7 @@ auth.onAuthStateChanged(async (user) => {
       
       // DO NOT sign out - instead show error to user
       currentUserDoc = null;
-      updateAdminLinkVisibility();
+      updateAuthUI();
       
       if (page === "login") {
         // Show error on login page
@@ -185,7 +269,11 @@ auth.onAuthStateChanged(async (user) => {
     }
 
     currentUserDoc = userDocSnap.data();
-    updateAdminLinkVisibility();
+    
+    // Store auth token (using user ID as token for simplicity)
+    Auth.setToken(user.uid);
+    
+    updateAuthUI();
 
     const needsPasswordChange = !!currentUserDoc.mustChangePassword;
     const hasUsername = !!currentUserDoc.username;
@@ -305,6 +393,8 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
       try {
         setLoginLoading(true);
         const result = await signInCompat(email, password);
+        
+        // Auth token will be set by onAuthStateChanged handler
         // Don't redirect here - let onAuthStateChanged handle it
         // This prevents race conditions and duplicate redirects
       } catch (err) {
@@ -467,6 +557,7 @@ function initLogoutHandler() {
   newLogoutButton.addEventListener("click", async (e) => {
     e.preventDefault();
     try {
+      Auth.clearToken();
       await auth.signOut();
       window.location.href = "index.html";
     } catch (err) {
@@ -481,7 +572,7 @@ function initLogoutHandler() {
 
 function initPlansPage() {
   initLogoutHandler();
-  updateAdminLinkVisibility();
+  updateAuthUI();
 
   const currentPlanLabel = document.getElementById("current-plan-label");
   const planCards = document.querySelectorAll("[data-plan-tier]");
@@ -542,7 +633,7 @@ function initPlansPage() {
 
 function initPortalPage() {
   initLogoutHandler();
-  updateAdminLinkVisibility();
+  updateAuthUI();
 
   const authRequired = document.getElementById("auth-required");
   const portalContent = document.getElementById("portal-content");
@@ -678,7 +769,7 @@ async function initializeChat() {
 
 function initAccountPage() {
   initLogoutHandler();
-  updateAdminLinkVisibility();
+  updateAuthUI();
 
   const authRequired = document.getElementById("auth-required");
   const accountContent = document.getElementById("account-content");
@@ -864,7 +955,7 @@ function initAccountPage() {
 
 function initAdminPage() {
   initLogoutHandler();
-  updateAdminLinkVisibility();
+  updateAuthUI();
   console.log("Admin page initialized. Admin user:", currentUser, currentUserDoc);
   // Admin page has its own inline script for now
 }
@@ -874,7 +965,7 @@ function initAdminPage() {
 // ============================================================================
 
 function initPublicPage(page) {
-  updateAdminLinkVisibility();
+  updateAuthUI();
   console.log("Public page initialized:", page, "User:", currentUser, currentUserDoc);
 }
 
