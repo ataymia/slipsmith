@@ -39,6 +39,7 @@
                         <button class="tab-btn" data-tab="users">Manage Users</button>
                         <button class="tab-btn" data-tab="slip-requests">Slip Requests</button>
                         <button class="tab-btn" data-tab="user-manager">Admin User Manager</button>
+                        <button class="tab-btn" data-tab="results-bot">Results Bot</button>
                     </div>
 
                     <!-- Posts Management Tab -->
@@ -193,6 +194,27 @@
                                 <div id="admin-user-status" class="success-message" style="display: none;"></div>
                                 <div id="admin-user-temp-password-display" class="success-message" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 255, 136, 0.1); border: 1px solid var(--primary); border-radius: 4px;"></div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- Results Bot Tab -->
+                    <div id="results-bot-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>🤖 Results Bot</h2>
+                            <p>Automated sports betting results grading using free public APIs.</p>
+                            <p style="margin-top: 1rem;">
+                                <a href="admin/results-bot.html" class="btn btn-primary" target="_blank">Open Results Bot →</a>
+                            </p>
+                            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 4px;">
+                                <h3 style="color: var(--accent-green); margin-bottom: 0.5rem;">Features:</h3>
+                                <ul style="color: var(--text-secondary); margin-left: 1.5rem;">
+                                    <li>NBA grading via balldontlie.io (free, no API key)</li>
+                                    <li>NHL grading via NHL Stats API (free, no API key)</li>
+                                    <li>Batch grade multiple events at once</li>
+                                    <li>Client-side caching to reduce API calls</li>
+                                    <li>Clear grading feedback with actual values</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

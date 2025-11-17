@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results Bot - $lip$mith Admin</title>
+    <style>
+        /* Root Variables - Dark Theme with Money Green */
+        :root {
+            --bg-primary: #0a0e0f;
+            --bg-secondary: #131a1d;
+            --bg-tertiary: #1a2528;
+            --bg-card: #1f2a2e;
+            
+            --text-primary: #e8f0f2;
+            --text-secondary: #a8b8bd;
+            --text-muted: #6b7e85;
+            
+            --accent-green: #00ff88;
+            --accent-green-dark: #00cc6d;
+            --accent-green-light: #4dffaa;
+            
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --info: #44aaff;
+            
+            --border-color: #2a3a40;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-green);
+        }
+
+        h1 {
+            color: var(--accent-green);
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .card h2 {
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            min-height: 150px;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: var(--accent-green-light);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            box-shadow: none;
+        }
+
+        .event-row {
+            display: grid;
+            grid-template-columns: 2fr 2fr 2fr 1fr 1fr auto;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: end;
+        }
+
+        .event-row input, .event-row select {
+            padding: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .result-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+        }
+
+        .result-item.hit {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .result-item.miss {
+            border-left: 4px solid var(--danger);
+        }
+
+        .result-item.push {
+            border-left: 4px solid var(--warning);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .result-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .result-status.hit {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+        }
+
+        .result-status.miss {
+            background: var(--danger);
+            color: white;
+        }
+
+        .result-status.push {
+            background: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .result-details {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .result-reason {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-top: 0.25rem;
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+
+        .help-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .help-section h3 {
+            color: var(--accent-green);
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .help-section ul {
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .help-section li {
+            margin-bottom: 0.25rem;
+        }
+
+        .help-section code {
+            background: var(--bg-secondary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            color: var(--accent-green);
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-green);
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--accent-green-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../admin.html" class="back-link">← Back to Admin Dashboard</a>
+        
+        <header>
+            <h1>🤖 Results Bot</h1>
+            <p class="subtitle">Automated sports betting results grading using free public APIs</p>
+        </header>
+
+        <div class="help-section">
+            <h3>📚 Supported APIs & Markets</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
+                This tool uses free public APIs to grade betting events. No API keys required!
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong style="color: var(--accent-green);">🏀 NBA (balldontlie.io)</strong>
+                    <ul>
+                        <li>Player stats: <code>pts</code>, <code>reb</code>, <code>ast</code>, <code>fg3m</code>, <code>stl</code>, <code>blk</code></li>
+                        <li>Team totals: <code>team_total</code></li>
+                        <li>Game totals: <code>total_points</code></li>
+                        <li>Game format: <code>LAL@GSW</code> (visitor@home)</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong style="color: var(--accent-green);">🏒 NHL (statsapi.web.nhl.com)</strong>
+                    <ul>
+                        <li>Skater stats: <code>goals</code>, <code>assists</code>, <code>shots</code>, <code>points</code></li>
+                        <li>Goalie stats: <code>saves</code>, <code>shots_against</code></li>
+                        <li>Team totals: <code>team_total</code></li>
+                        <li>Game totals: <code>total_goals</code></li>
+                        <li>Game format: <code>TOR@BOS</code> (away@home)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⚙️ Configure Grading Run</h2>
+            <form id="config-form">
+                <div class="form-group">
+                    <label for="sport">Sport</label>
+                    <select id="sport" required>
+                        <option value="nba">NBA</option>
+                        <option value="nhl">NHL</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Date (YYYY-MM-DD)</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Events (JSON Array)</label>
+                    <textarea id="events-json" placeholder='[
+  {
+    "game_id": "LAL@GSW",
+    "market": "pts",
+    "player": "LeBron James",
+    "line": 25.5,
+    "direction": "over"
+  }
+]'></textarea>
+                    <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        Or add events manually below:
+                    </div>
+                </div>
+
+                <div id="events-builder">
+                    <div style="display: grid; grid-template-columns: 2fr 2fr 2fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary); font-size: 0.9rem;">
+                        <div>Game ID</div>
+                        <div>Market</div>
+                        <div>Player (optional)</div>
+                        <div>Line</div>
+                        <div>Direction</div>
+                        <div></div>
+                    </div>
+                    <div id="events-list"></div>
+                    <button type="button" class="btn-secondary btn-small" onclick="addEventRow()">+ Add Event</button>
+                </div>
+
+                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <button type="submit" class="btn">🚀 Grade Events</button>
+                    <button type="button" class="btn-secondary" onclick="clearResults()">🗑️ Clear Results</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="results-container"></div>
+    </div>
+
+    <script>
+        // In-memory cache for API responses
+        const cache = {
+            nba: {
+                games: {},
+                players: {},
+                stats: {}
+            },
+            nhl: {
+                schedule: {},
+                boxscores: {}
+            }
+        };
+
+        // Add initial event row on load
+        document.addEventListener('DOMContentLoaded', () => {
+            addEventRow();
+            // Set today's date as default
+            document.getElementById('date').valueAsDate = new Date();
+        });
+
+        function addEventRow() {
+            const list = document.getElementById('events-list');
+            const row = document.createElement('div');
+            row.className = 'event-row';
+            row.innerHTML = `
+                <input type="text" placeholder="e.g., LAL@GSW" class="game-id">
+                <input type="text" placeholder="e.g., pts, assists" class="market">
+                <input type="text" placeholder="e.g., LeBron James" class="player">
+                <input type="number" step="0.5" placeholder="25.5" class="line">
+                <select class="direction">
+                    <option value="over">Over</option>
+                    <option value="under">Under</option>
+                </select>
+                <button type="button" class="btn-secondary btn-small" onclick="removeEventRow(this)">✕</button>
+            `;
+            list.appendChild(row);
+        }
+
+        function removeEventRow(btn) {
+            btn.parentElement.remove();
+        }
+
+        function collectEvents() {
+            // Try JSON first
+            const jsonText = document.getElementById('events-json').value.trim();
+            if (jsonText) {
+                try {
+                    return JSON.parse(jsonText);
+                } catch (e) {
+                    throw new Error('Invalid JSON in events textarea: ' + e.message);
+                }
+            }
+
+            // Collect from builder
+            const rows = document.querySelectorAll('#events-list .event-row');
+            const events = [];
+            rows.forEach(row => {
+                const gameId = row.querySelector('.game-id').value.trim();
+                const market = row.querySelector('.market').value.trim();
+                const player = row.querySelector('.player').value.trim();
+                const line = parseFloat(row.querySelector('.line').value);
+                const direction = row.querySelector('.direction').value;
+
+                if (gameId && market && !isNaN(line)) {
+                    events.push({
+                        game_id: gameId,
+                        market: market,
+                        player: player || null,
+                        line: line,
+                        direction: direction
+                    });
+                }
+            });
+
+            if (events.length === 0) {
+                throw new Error('No valid events to grade. Please add at least one event.');
+            }
+
+            return events;
+        }
+
+        function clearResults() {
+            document.getElementById('results-container').innerHTML = '';
+        }
+
+        document.getElementById('config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sport = document.getElementById('sport').value;
+            const date = document.getElementById('date').value;
+            
+            try {
+                const events = collectEvents();
+                await gradeEvents(sport, date, events);
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        async function gradeEvents(sport, date, events) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div> Grading events...</div>';
+
+            try {
+                let results;
+                if (sport === 'nba') {
+                    results = await gradeNBAEvents(date, events);
+                } else if (sport === 'nhl') {
+                    results = await gradeNHLEvents(date, events);
+                } else {
+                    throw new Error('Unsupported sport: ' + sport);
+                }
+
+                displayResults(results);
+            } catch (error) {
+                console.error('Grading error:', error);
+                showError('Grading failed: ' + error.message);
+            }
+        }
+
+        async function gradeNBAEvents(date, events) {
+            // Fetch games for the date
+            const games = await fetchNBAGames(date);
+            const results = [];
+
+            for (const event of events) {
+                try {
+                    const result = await gradeNBAEvent(event, games, date);
+                    results.push(result);
+                } catch (error) {
+                    results.push({
+                        ...event,
+                        status: 'ERROR',
+                        reason: error.message,
+                        actual_value: null
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        async function fetchNBAGames(date) {
+            const cacheKey = date;
+            if (cache.nba.games[cacheKey]) {
+                return cache.nba.games[cacheKey];
+            }
+
+            const url = `https://www.balldontlie.io/api/v1/games?dates[]=${date}&per_page=100`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch NBA games: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            cache.nba.games[cacheKey] = data.data;
+            return data.data;
+        }
+
+        async function gradeNBAEvent(event, games, date) {
+            // Parse game_id (e.g., "LAL@GSW")
+            const [visitorAbbr, homeAbbr] = event.game_id.split('@').map(s => s.trim().toUpperCase());
+            
+            // Find matching game
+            const game = games.find(g => 
+                g.visitor_team.abbreviation === visitorAbbr && 
+                g.home_team.abbreviation === homeAbbr
+            );
+
+            if (!game) {
+                throw new Error(`Game not found: ${event.game_id} on ${date}`);
+            }
+
+            if (game.status !== 'Final') {
+                throw new Error(`Game ${event.game_id} has not finished (status: ${game.status})`);
+            }
+
+            let actualValue;
+            const market = event.market.toLowerCase();
+
+            // Handle team/game level markets
+            if (market === 'total_points') {
+                actualValue = game.home_team_score + game.visitor_team_score;
+            } else if (market === 'team_total') {
+                if (!event.player) {
+                    throw new Error('team_total requires player field to specify team (use team abbreviation)');
+                }
+                const teamAbbr = event.player.toUpperCase();
+                if (teamAbbr === homeAbbr) {
+                    actualValue = game.home_team_score;
+                } else if (teamAbbr === visitorAbbr) {
+                    actualValue = game.visitor_team_score;
+                } else {
+                    throw new Error(`Team ${teamAbbr} not in game ${event.game_id}`);
+                }
+            } else {
+                // Player stat market
+                if (!event.player) {
+                    throw new Error(`Market ${event.market} requires a player name`);
+                }
+
+                // Resolve player
+                const players = await searchNBAPlayer(event.player, [visitorAbbr, homeAbbr]);
+                if (players.length === 0) {
+                    throw new Error(`Player not found: ${event.player}`);
+                }
+
+                // Fetch stats
+                const stats = await fetchNBAPlayerStats(game.id, players.map(p => p.id));
+                const playerStat = stats.find(s => 
+                    players.some(p => p.id === s.player.id)
+                );
+
+                if (!playerStat) {
+                    throw new Error(`No stats found for ${event.player} in game ${event.game_id}`);
+                }
+
+                // Extract stat value
+                if (market === 'pts' || market === 'points') {
+                    actualValue = playerStat.pts;
+                } else if (market === 'reb' || market === 'rebounds') {
+                    actualValue = playerStat.reb;
+                } else if (market === 'ast' || market === 'assists') {
+                    actualValue = playerStat.ast;
+                } else if (market === 'fg3m' || market === 'threes') {
+                    actualValue = playerStat.fg3m;
+                } else if (market === 'stl' || market === 'steals') {
+                    actualValue = playerStat.stl;
+                } else if (market === 'blk' || market === 'blocks') {
+                    actualValue = playerStat.blk;
+                } else {
+                    throw new Error(`Unsupported market: ${event.market}`);
+                }
+            }
+
+            // Grade
+            const status = gradeEvent(actualValue, event.line, event.direction);
+            const reason = `Actual: ${actualValue}, Line: ${event.line} ${event.direction}`;
+
+            return {
+                ...event,
+                status,
+                actual_value: actualValue,
+                reason
+            };
+        }
+
+        async function searchNBAPlayer(playerName, teamAbbrs = []) {
+            const cacheKey = playerName.toLowerCase() + teamAbbrs.join(',');
+            if (cache.nba.players[cacheKey]) {
+                return cache.nba.players[cacheKey];
+            }
+
+            const url = `https://www.balldontlie.io/api/v1/players?search=${encodeURIComponent(playerName)}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to search player: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            let players = data.data;
+
+            // Filter by team if provided
+            if (teamAbbrs.length > 0) {
+                players = players.filter(p => teamAbbrs.includes(p.team.abbreviation));
+            }
+
+            cache.nba.players[cacheKey] = players;
+            return players;
+        }
+
+        async function fetchNBAPlayerStats(gameId, playerIds) {
+            const cacheKey = `${gameId}-${playerIds.join(',')}`;
+            if (cache.nba.stats[cacheKey]) {
+                return cache.nba.stats[cacheKey];
+            }
+
+            const playerIdsParam = playerIds.map(id => `player_ids[]=${id}`).join('&');
+            const url = `https://www.balldontlie.io/api/v1/stats?game_ids[]=${gameId}&${playerIdsParam}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch player stats: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            cache.nba.stats[cacheKey] = data.data;
+            return data.data;
+        }
+
+        async function gradeNHLEvents(date, events) {
+            // Fetch schedule for the date
+            const schedule = await fetchNHLSchedule(date);
+            const results = [];
+
+            for (const event of events) {
+                try {
+                    const result = await gradeNHLEvent(event, schedule, date);
+                    results.push(result);
+                } catch (error) {
+                    results.push({
+                        ...event,
+                        status: 'ERROR',
+                        reason: error.message,
+                        actual_value: null
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        async function fetchNHLSchedule(date) {
+            const cacheKey = date;
+            if (cache.nhl.schedule[cacheKey]) {
+                return cache.nhl.schedule[cacheKey];
+            }
+
+            const url = `https://statsapi.web.nhl.com/api/v1/schedule?date=${date}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch NHL schedule: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            const games = data.dates.length > 0 ? data.dates[0].games : [];
+            cache.nhl.schedule[cacheKey] = games;
+            return games;
+        }
+
+        async function gradeNHLEvent(event, schedule, date) {
+            // Parse game_id (e.g., "TOR@BOS")
+            const [awayAbbr, homeAbbr] = event.game_id.split('@').map(s => s.trim().toUpperCase());
+            
+            // Find matching game
+            const game = schedule.find(g => {
+                const away = g.teams.away.team.abbreviation || g.teams.away.team.teamName.substring(0, 3).toUpperCase();
+                const home = g.teams.home.team.abbreviation || g.teams.home.team.teamName.substring(0, 3).toUpperCase();
+                return away === awayAbbr && home === homeAbbr;
+            });
+
+            if (!game) {
+                throw new Error(`Game not found: ${event.game_id} on ${date}`);
+            }
+
+            if (game.status.abstractGameState !== 'Final') {
+                throw new Error(`Game ${event.game_id} has not finished (status: ${game.status.detailedState})`);
+            }
+
+            let actualValue;
+            const market = event.market.toLowerCase();
+
+            // Handle team/game level markets
+            if (market === 'total_goals' || market === 'total_points') {
+                actualValue = game.teams.home.score + game.teams.away.score;
+            } else if (market === 'team_total') {
+                if (!event.player) {
+                    throw new Error('team_total requires player field to specify team (use team abbreviation)');
+                }
+                const teamAbbr = event.player.toUpperCase();
+                const homeTeamAbbr = game.teams.home.team.abbreviation || game.teams.home.team.teamName.substring(0, 3).toUpperCase();
+                const awayTeamAbbr = game.teams.away.team.abbreviation || game.teams.away.team.teamName.substring(0, 3).toUpperCase();
+                
+                if (teamAbbr === homeTeamAbbr) {
+                    actualValue = game.teams.home.score;
+                } else if (teamAbbr === awayTeamAbbr) {
+                    actualValue = game.teams.away.score;
+                } else {
+                    throw new Error(`Team ${teamAbbr} not in game ${event.game_id}`);
+                }
+            } else {
+                // Player stat market
+                if (!event.player) {
+                    throw new Error(`Market ${event.market} requires a player name`);
+                }
+
+                // Fetch boxscore
+                const boxscore = await fetchNHLBoxscore(game.gamePk);
+                
+                // Search for player in boxscore
+                const playerStats = findNHLPlayerStats(boxscore, event.player);
+                if (!playerStats) {
+                    throw new Error(`Player not found in boxscore: ${event.player}`);
+                }
+
+                // Extract stat value
+                const stats = playerStats.stats;
+                if (market === 'goals') {
+                    actualValue = stats.skaterStats ? stats.skaterStats.goals : 0;
+                } else if (market === 'assists') {
+                    actualValue = stats.skaterStats ? stats.skaterStats.assists : 0;
+                } else if (market === 'points') {
+                    actualValue = stats.skaterStats ? (stats.skaterStats.goals + stats.skaterStats.assists) : 0;
+                } else if (market === 'shots') {
+                    actualValue = stats.skaterStats ? stats.skaterStats.shots : 0;
+                } else if (market === 'saves') {
+                    actualValue = stats.goalieStats ? stats.goalieStats.saves : 0;
+                } else if (market === 'shots_against') {
+                    actualValue = stats.goalieStats ? stats.goalieStats.shots : 0;
+                } else {
+                    throw new Error(`Unsupported market: ${event.market}`);
+                }
+            }
+
+            // Grade
+            const status = gradeEvent(actualValue, event.line, event.direction);
+            const reason = `Actual: ${actualValue}, Line: ${event.line} ${event.direction}`;
+
+            return {
+                ...event,
+                status,
+                actual_value: actualValue,
+                reason
+            };
+        }
+
+        async function fetchNHLBoxscore(gamePk) {
+            const cacheKey = gamePk.toString();
+            if (cache.nhl.boxscores[cacheKey]) {
+                return cache.nhl.boxscores[cacheKey];
+            }
+
+            const url = `https://statsapi.web.nhl.com/api/v1/game/${gamePk}/boxscore`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch NHL boxscore: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            cache.nhl.boxscores[cacheKey] = data;
+            return data;
+        }
+
+        function findNHLPlayerStats(boxscore, playerName) {
+            const searchName = playerName.toLowerCase();
+            
+            // Search in both teams
+            for (const side of ['away', 'home']) {
+                const teamData = boxscore.teams[side];
+                const players = teamData.players;
+                
+                for (const playerId in players) {
+                    const player = players[playerId];
+                    const fullName = player.person.fullName.toLowerCase();
+                    
+                    if (fullName.includes(searchName) || searchName.includes(fullName.split(' ')[1])) {
+                        return player;
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        function gradeEvent(actualValue, line, direction) {
+            if (actualValue === null || actualValue === undefined) {
+                return 'ERROR';
+            }
+
+            if (direction === 'over') {
+                if (actualValue > line) return 'HIT';
+                if (actualValue < line) return 'MISS';
+                return 'PUSH';
+            } else { // under
+                if (actualValue < line) return 'HIT';
+                if (actualValue > line) return 'MISS';
+                return 'PUSH';
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('results-container');
+            
+            const summary = {
+                total: results.length,
+                hit: results.filter(r => r.status === 'HIT').length,
+                miss: results.filter(r => r.status === 'MISS').length,
+                push: results.filter(r => r.status === 'PUSH').length,
+                error: results.filter(r => r.status === 'ERROR').length
+            };
+
+            let html = `
+                <div class="card">
+                    <h2>📊 Results Summary</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--accent-green);">${summary.hit}</div>
+                            <div style="color: var(--text-secondary);">Hits</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--danger);">${summary.miss}</div>
+                            <div style="color: var(--text-secondary);">Misses</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">${summary.push}</div>
+                            <div style="color: var(--text-secondary);">Pushes</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--text-muted);">${summary.error}</div>
+                            <div style="color: var(--text-secondary);">Errors</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📋 Detailed Results</h2>
+                    <div class="results-grid">
+            `;
+
+            results.forEach(result => {
+                const statusClass = result.status.toLowerCase();
+                const playerInfo = result.player ? ` - ${result.player}` : '';
+                
+                html += `
+                    <div class="result-item ${statusClass}">
+                        <div class="result-header">
+                            <div class="result-title">${result.game_id}${playerInfo} - ${result.market}</div>
+                            <div class="result-status ${statusClass}">${result.status}</div>
+                        </div>
+                        <div class="result-details">
+                            Line: ${result.line} ${result.direction}
+                            ${result.actual_value !== null ? ` | Actual: ${result.actual_value}` : ''}
+                        </div>
+                        ${result.reason ? `<div class="result-reason">${result.reason}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div class="error-message">
+                    <strong>❌ Error:</strong> ${message}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
