@@ -6,9 +6,10 @@
 // ============================================================================
 
 // Get Firebase services from globals exposed in firebase.js
-const auth = window.firebaseAuth;
-const db = window.firebaseDb;
-const storage = window.firebaseStorage;
+// Use defensive fallback to support both window.auth and window.firebaseAuth
+const auth = window.auth || window.firebaseAuth;
+const db = window.db || window.firebaseDb;
+const storage = window.storage || window.firebaseStorage;
 
 if (!auth || !db) {
   console.error("Firebase services not found. Make sure firebase.js is loaded before app.js.");
@@ -231,44 +232,61 @@ auth.onAuthStateChanged(async (user) => {
     const userDocSnap = await userDocRef.get();
 
     if (!userDocSnap.exists) {
-      console.error("============================================================");
-      console.error("PROFILE ERROR: User profile not found in Firestore");
-      console.error("User UID:", user.uid);
-      console.error("User Email:", user.email);
-      console.error("This user is authenticated but has no Firestore profile document.");
-      console.error("Action needed: Create a profile document or contact support.");
-      console.error("============================================================");
+      console.warn("============================================================");
+      console.warn("PROFILE NOT FOUND: Auto-creating minimal Firestore profile");
+      console.warn("User UID:", user.uid);
+      console.warn("User Email:", user.email);
+      console.warn("============================================================");
       
-      // DO NOT sign out - instead show error to user
-      currentUserDoc = null;
-      updateAuthUI();
-      
-      if (page === "login") {
-        // Show error on login page
-        initLoginPage();
-        const errorDiv = document.getElementById("login-error");
-        if (errorDiv) {
-          errorDiv.textContent = "Your account exists but profile setup is incomplete. Please contact support.";
-          errorDiv.style.display = "block";
+      // Auto-create a minimal Firestore profile document to unblock the user
+      try {
+        const newUserProfile = {
+          email: user.email,
+          tier: "starter",
+          role: "user",
+          createdAt: getServerTimestamp(),
+          updatedAt: getServerTimestamp(),
+          mustChangePassword: false
+        };
+        
+        await userDocRef.set(newUserProfile);
+        console.log("✓ Minimal profile created successfully");
+        
+        // Set currentUserDoc to the newly created profile
+        currentUserDoc = newUserProfile;
+      } catch (createErr) {
+        console.error("Failed to create profile document:", createErr);
+        console.error("User will be blocked until profile is manually created.");
+        
+        // Show error to user since auto-creation failed
+        currentUserDoc = null;
+        updateAuthUI();
+        
+        if (page === "login") {
+          initLoginPage();
+          const errorDiv = document.getElementById("login-error");
+          if (errorDiv) {
+            errorDiv.textContent = "Unable to set up your profile. Please contact support.";
+            errorDiv.style.display = "block";
+          }
+        } else if (page === "portal" || page === "admin") {
+          const authRequired = document.getElementById("auth-required");
+          if (authRequired) {
+            authRequired.innerHTML = `
+              <h2>⚠️ Profile Setup Failed</h2>
+              <p>We couldn't set up your profile automatically.</p>
+              <p>User: ${user.email}</p>
+              <p>Please contact support to complete your profile setup.</p>
+              <button onclick="auth.signOut().then(() => window.location.href = 'login.html')" class="btn btn-primary">Sign Out</button>
+            `;
+            authRequired.style.display = "block";
+          }
         }
-      } else if (page === "portal" || page === "admin") {
-        // Show auth required message on protected pages
-        const authRequired = document.getElementById("auth-required");
-        if (authRequired) {
-          authRequired.innerHTML = `
-            <h2>⚠️ Profile Setup Required</h2>
-            <p>Your account is authenticated but your profile is incomplete.</p>
-            <p>User: ${user.email}</p>
-            <p>Please contact support to complete your profile setup.</p>
-            <button onclick="auth.signOut().then(() => window.location.href = 'login.html')" class="btn btn-primary">Sign Out</button>
-          `;
-          authRequired.style.display = "block";
-        }
+        return;
       }
-      return;
+    } else {
+      currentUserDoc = userDocSnap.data();
     }
-
-    currentUserDoc = userDocSnap.data();
     
     // Store auth token (using user ID as token for simplicity)
     Auth.setToken(user.uid);
