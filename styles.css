@@ -1006,6 +1006,126 @@ footer {
     }
 }
 
+/* Account Page */
+.account-main {
+    padding: 4rem 0;
+    min-height: calc(100vh - 200px);
+}
+
+.account-card {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    padding: 3rem;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+}
+
+.account-card h1 {
+    color: var(--accent-green);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.account-section {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.account-section:last-child {
+    border-bottom: none;
+}
+
+.account-section h2 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.account-section p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.account-section label {
+    display: block;
+    margin: 1rem 0 0.5rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.account-section input {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.account-section input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+}
+
+.account-section button {
+    padding: 0.9rem 2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    background: var(--accent-green);
+    color: var(--bg-primary);
+}
+
+.account-section button:hover {
+    background: var(--accent-green-light);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+}
+
+.account-status {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    min-height: 1.5rem;
+}
+
+.account-status:not(:empty) {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.account-danger {
+    border: 2px solid var(--danger);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: rgba(255, 68, 68, 0.05);
+}
+
+.account-danger h2 {
+    color: var(--danger);
+}
+
+.account-danger button {
+    background: var(--danger);
+    color: white;
+}
+
+.account-danger button:hover {
+    background: #ff6666;
+    box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+}
+
 @media (max-width: 640px) {
     .nav-container {
         flex-direction: column;
@@ -1023,5 +1143,9 @@ footer {
 
     .features-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .account-card {
+        padding: 1.5rem;
     }
 }
