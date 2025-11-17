@@ -305,34 +305,8 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
       try {
         setLoginLoading(true);
         const result = await signInCompat(email, password);
-        const user = result.user;
-
-        const userDocRef = db.collection("users").doc(user.uid);
-        const userDocSnap = await userDocRef.get();
-
-        if (!userDocSnap.exists) {
-          await auth.signOut();
-          if (errorDiv) {
-            errorDiv.textContent = "No profile found for this user. Please contact support.";
-            errorDiv.style.display = "block";
-          }
-          setLoginLoading(false);
-          return;
-        }
-
-        currentUser = user;
-        currentUserDoc = userDocSnap.data();
-
-        const needsPasswordChange = !!currentUserDoc.mustChangePassword;
-        const hasUsername = !!currentUserDoc.username;
-
-        if (needsPasswordChange) {
-          showPasswordForm();
-        } else if (!hasUsername) {
-          showUsernameForm();
-        } else {
-          window.location.href = "portal.html";
-        }
+        // Don't redirect here - let onAuthStateChanged handle it
+        // This prevents race conditions and duplicate redirects
       } catch (err) {
         console.error("Login error:", err);
         let msg = "Login failed. Please check your email and password.";
