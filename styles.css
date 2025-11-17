@@ -767,7 +767,7 @@ a:hover {
     gap: 0.5rem;
 }
 
-.chat-input-form input {
+.chat-input-form input[type="text"] {
     flex: 1;
     padding: 0.8rem;
     background: var(--bg-tertiary);
@@ -776,9 +776,26 @@ a:hover {
     color: var(--text-primary);
 }
 
-.chat-input-form input:focus {
+.chat-input-form input[type="text"]:focus {
     outline: none;
     border-color: var(--accent-green);
+}
+
+.btn-image {
+    padding: 0.8rem 1rem;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-image:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
 }
 
 .btn-send {
@@ -794,6 +811,71 @@ a:hover {
 
 .btn-send:hover {
     background: var(--accent-green-light);
+}
+
+.chat-image-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    position: relative;
+    display: inline-block;
+}
+
+.chat-image-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 4px;
+    display: block;
+}
+
+.btn-remove-preview {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+
+.btn-remove-preview:hover {
+    background: #ff6666;
+}
+
+.message-image {
+    margin-top: 0.5rem;
+    max-width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.message-image img {
+    max-width: 400px;
+    max-height: 400px;
+    border-radius: 8px;
+    display: block;
+}
+
+.btn-delete-message {
+    padding: 0.3rem 0.6rem;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-delete-message:hover {
+    background: #ff6666;
 }
 
 /* Admin Page */

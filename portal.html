@@ -57,9 +57,15 @@
                                 <!-- Messages will be loaded here -->
                             </div>
                             <form id="chat-form" class="chat-input-form">
-                                <input type="text" id="chat-input" placeholder="Type a message..." required>
+                                <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
+                                <button type="button" id="chat-image-button" class="btn-image" title="Upload image">📷</button>
+                                <input type="text" id="chat-input" placeholder="Type a message...">
                                 <button type="submit" class="btn-send">Send</button>
                             </form>
+                            <div id="chat-image-preview" class="chat-image-preview" style="display: none;">
+                                <img id="chat-preview-img" src="" alt="Preview">
+                                <button type="button" id="chat-remove-image" class="btn-remove-preview">✕</button>
+                            </div>
                         </div>
                     </div>
                 </div>
