@@ -15,6 +15,8 @@
                 <li><a href="plans.html" class="active">Plans</a></li>
                 <li><a href="portal.html">Portal</a></li>
                 <li><a href="login.html">Login</a></li>
+                <li><a href="admin.html" id="admin-link" style="display: none;">Admin</a></li>
+                <li><button id="logout-button" style="display: none;">Log Out</button></li>
             </ul>
         </div>
     </nav>
@@ -24,13 +26,14 @@
             <div class="container">
                 <h1>Choose Your Plan</h1>
                 <p>Select the tier that's right for you</p>
+                <div id="current-plan-label" class="current-plan-label"></div>
             </div>
         </section>
 
         <section class="pricing">
             <div class="container">
                 <div class="plans-grid">
-                    <div class="plan-card starter">
+                    <div class="plan-card starter" data-plan-tier="starter">
                         <div class="plan-header">
                             <h3>Starter</h3>
                             <div class="price">$9.99<span>/month</span></div>
@@ -43,10 +46,10 @@
                             <li>✗ Premium content</li>
                             <li>✗ VIP exclusives</li>
                         </ul>
-                        <a href="#payment-info" class="btn btn-outline">Get Started</a>
+                        <button class="btn btn-outline plan-cta">Select</button>
                     </div>
 
-                    <div class="plan-card pro featured">
+                    <div class="plan-card pro featured" data-plan-tier="pro">
                         <div class="badge">POPULAR</div>
                         <div class="plan-header">
                             <h3>Pro</h3>
@@ -60,10 +63,10 @@
                             <li>✓ Priority support</li>
                             <li>✗ VIP exclusives</li>
                         </ul>
-                        <a href="#payment-info" class="btn btn-primary">Get Started</a>
+                        <button class="btn btn-primary plan-cta">Select</button>
                     </div>
 
-                    <div class="plan-card vip">
+                    <div class="plan-card vip" data-plan-tier="vip">
                         <div class="plan-header">
                             <h3>VIP</h3>
                             <div class="price">$49.99<span>/month</span></div>
@@ -76,7 +79,7 @@
                             <li>✓ Early access</li>
                             <li>✓ Special perks</li>
                         </ul>
-                        <a href="#payment-info" class="btn btn-primary">Get Started</a>
+                        <button class="btn btn-primary plan-cta">Select</button>
                     </div>
                 </div>
             </div>
