@@ -91,12 +91,24 @@ let currentUserDoc = null; // Firestore user document data
 
 function updateAdminLinkVisibility() {
   const adminLink = document.getElementById("admin-link");
-  if (!adminLink) return;
-
-  if (currentUser && currentUserDoc && currentUserDoc.role === "admin") {
-    adminLink.style.display = "inline-block";
-  } else {
-    adminLink.style.display = "none";
+  const accountLink = document.getElementById("account-link");
+  
+  // Show admin link only for admins
+  if (adminLink) {
+    if (currentUser && currentUserDoc && currentUserDoc.role === "admin") {
+      adminLink.style.display = "inline-block";
+    } else {
+      adminLink.style.display = "none";
+    }
+  }
+  
+  // Show account link only for logged-in users
+  if (accountLink) {
+    if (currentUser && currentUserDoc) {
+      accountLink.style.display = "inline-block";
+    } else {
+      accountLink.style.display = "none";
+    }
   }
 }
 
@@ -368,7 +380,7 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
       try {
         await db.collection("users").doc(currentUser.uid).update({
           username: username,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: getServerTimestamp()
         });
 
         if (!currentUserDoc) currentUserDoc = {};
@@ -438,7 +450,7 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
         // Clear the mustChangePassword flag in Firestore
         await db.collection("users").doc(currentUser.uid).update({
           mustChangePassword: false,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: getServerTimestamp()
         });
 
         if (!currentUserDoc) currentUserDoc = {};
@@ -694,6 +706,20 @@ function initAccountPage() {
   initLogoutHandler();
   updateAdminLinkVisibility();
 
+  const authRequired = document.getElementById("auth-required");
+  const accountContent = document.getElementById("account-content");
+
+  if (!currentUser || !currentUserDoc) {
+    // Show auth required message
+    if (authRequired) authRequired.style.display = "block";
+    if (accountContent) accountContent.style.display = "none";
+    return;
+  }
+
+  // Hide auth required, show content
+  if (authRequired) authRequired.style.display = "none";
+  if (accountContent) accountContent.style.display = "block";
+
   const emailSpan = document.getElementById("account-email");
   const usernameInput = document.getElementById("account-username-input");
   const usernameSaveButton = document.getElementById("account-username-save-button");
@@ -708,12 +734,6 @@ function initAccountPage() {
 
   const deleteButton = document.getElementById("account-delete-button");
   const deleteStatus = document.getElementById("account-delete-status");
-
-  if (!currentUser || !currentUserDoc) {
-    // Safety: if somehow we got here without a user, send to login
-    window.location.href = "login.html";
-    return;
-  }
 
   // 1) Show email and username
   if (emailSpan) {
@@ -766,7 +786,7 @@ function initAccountPage() {
         const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
         await userDocRef.update({
           username: newUsername,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: getServerTimestamp()
         });
 
         currentUserDoc.username = newUsername;
@@ -805,7 +825,7 @@ function initAccountPage() {
           const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
           await userDocRef.update({
             mustChangePassword: false,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: getServerTimestamp()
           });
           currentUserDoc.mustChangePassword = false;
         } catch (innerErr) {
