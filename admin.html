@@ -39,6 +39,7 @@
                         <button class="tab-btn" data-tab="users">Manage Users</button>
                         <button class="tab-btn" data-tab="slip-requests">Slip Requests</button>
                         <button class="tab-btn" data-tab="user-manager">Admin User Manager</button>
+                        <button class="tab-btn" data-tab="slip-tools">Slip Tools</button>
                     </div>
 
                     <!-- Posts Management Tab -->
@@ -193,6 +194,40 @@
                                 <div id="admin-user-status" class="success-message" style="display: none;"></div>
                                 <div id="admin-user-temp-password-display" class="success-message" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 255, 136, 0.1); border: 1px solid var(--primary); border-radius: 4px;"></div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- Slip Tools Tab -->
+                    <div id="slip-tools-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>🎯 Slip Tools</h2>
+                            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Professional slip rendering and results grading tools</p>
+                            
+                            <div style="display: grid; gap: 1.5rem;">
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+                                    <h3 style="color: var(--accent-green); margin-bottom: 0.5rem;">THE Slipsmith</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                        Unified tool for rendering slips, grading picks with live stats, and generating recap sheets.
+                                    </p>
+                                    <a href="admin/the-slipsmith.html" class="btn btn-primary" target="_blank">Open THE Slipsmith</a>
+                                </div>
+
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--info);">
+                                    <h3 style="color: var(--info); margin-bottom: 0.5rem;">Results Bot</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                        Standalone grading tool for automated pick verification with real-time sports data.
+                                    </p>
+                                    <a href="admin/results-bot.html" class="btn btn-primary" target="_blank">Open Results Bot</a>
+                                </div>
+
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px;">
+                                    <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">📖 Documentation</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                        Learn about the slip JSON schema, supported sports APIs, and usage instructions.
+                                    </p>
+                                    <a href="admin/README.md" class="btn btn-outline" target="_blank">View README</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
