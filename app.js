@@ -1614,16 +1614,48 @@ function initReplyForm(recipientUserId, recipientName) {
   const newReplyForm = replyForm.cloneNode(true);
   replyForm.parentNode.replaceChild(newReplyForm, replyForm);
   
+  // Handle attachment file selection
+  const attachmentInput = document.getElementById('reply-attachment');
+  const attachmentName = document.getElementById('reply-attachment-name');
+  
+  if (attachmentInput && attachmentName) {
+    attachmentInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        attachmentName.textContent = file.name;
+      } else {
+        attachmentName.textContent = '';
+      }
+    });
+  }
+  
   newReplyForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const replyBody = document.getElementById('reply-body').value.trim();
-    if (!replyBody) return;
+    const attachmentFile = attachmentInput ? attachmentInput.files[0] : null;
+    
+    if (!replyBody && !attachmentFile) return;
     
     try {
       // Get recipient data
       const recipientDoc = await db.collection('users').doc(recipientUserId).get();
       const recipientData = recipientDoc.data();
+      
+      let attachmentUrl = null;
+      let attachmentPath = null;
+      
+      // Upload attachment if provided
+      if (attachmentFile && storage) {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${attachmentFile.name}`;
+        const storagePath = `inboxAttachments/${currentUser.uid}/${fileName}`;
+        const storageRef = storage.ref(storagePath);
+        
+        const snapshot = await storageRef.put(attachmentFile);
+        attachmentUrl = await snapshot.ref.getDownloadURL();
+        attachmentPath = storagePath;
+      }
       
       await db.collection('inboxMessages').add({
         fromUserId: currentUser.uid,
@@ -1633,9 +1665,9 @@ function initReplyForm(recipientUserId, recipientName) {
         toEmail: recipientData.email || '',
         toUsername: recipientData.username || '',
         subject: null,
-        body: replyBody,
-        attachmentUrl: null,
-        attachmentPath: null,
+        body: replyBody || '',
+        attachmentUrl: attachmentUrl,
+        attachmentPath: attachmentPath,
         participants: [currentUser.uid, recipientUserId],
         readBy: [currentUser.uid],
         createdAt: getServerTimestamp(),
@@ -1643,6 +1675,8 @@ function initReplyForm(recipientUserId, recipientName) {
       });
       
       document.getElementById('reply-body').value = '';
+      if (attachmentInput) attachmentInput.value = '';
+      if (attachmentName) attachmentName.textContent = '';
     } catch (error) {
       console.error('Error sending reply:', error);
       alert('Failed to send reply. Please try again.');
@@ -2178,12 +2212,18 @@ function attachSlipRequestHandlers() {
           updatedAt: getServerTimestamp()
         });
 
+        // Get recipient user data to get username
+        const recipientDoc = await db.collection("users").doc(requestData.userId).get();
+        const recipientData = recipientDoc.exists ? recipientDoc.data() : {};
+        
         // Create an inbox message to the user
         await db.collection("inboxMessages").add({
           fromUserId: currentUser.uid,
           fromEmail: currentUser.email || currentUserDoc.email || "",
+          fromUsername: currentUserDoc.username || "",
           toUserId: requestData.userId,
           toEmail: requestData.userEmail || "",
+          toUsername: recipientData.username || "",
           subject: `Slip request response (${requestData.sport || ""})`,
           body: responseSlip,
           attachmentUrl: null,
