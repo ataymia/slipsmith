@@ -1869,6 +1869,48 @@ footer {
     color: var(--text-secondary);
 }
 
+.account-status.success {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.account-status.error {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.account-status.pending {
+    background: rgba(68, 170, 255, 0.1);
+    border-color: var(--info);
+    color: var(--info);
+}
+
+.needs-username {
+    border: 2px solid var(--accent-green);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: rgba(0, 255, 136, 0.05);
+    animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 20px 5px rgba(0, 255, 136, 0.2);
+    }
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
 .account-danger {
     border: 2px solid var(--danger);
     border-radius: 8px;

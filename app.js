@@ -893,6 +893,7 @@ function initSlipRequestForPortal() {
       await db.collection("slipRequests").add({
         userId: currentUser.uid,
         userEmail: currentUser.email || currentUserDoc.email || "",
+        username: currentUserDoc.username || "",
         tier,
         sport,
         requestText,
@@ -1047,10 +1048,13 @@ async function initializeChat() {
         <button class="btn-delete-message" onclick="window.deleteChatMessageById('${msg.id}')">Delete</button>
       ` : '';
       
+      // Prefer username over email, with fallback to userName for backwards compatibility
+      const displayName = msg.fromUsername || msg.userName || msg.fromEmail || 'Anonymous';
+      
       return `
         <div class="chat-message ${isOwn ? 'own-message' : ''}" data-message-id="${msg.id}">
           <div class="message-header">
-            <span class="message-user">${msg.userName || 'Anonymous'}</span>
+            <span class="message-user">${displayName}</span>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
               ${deleteBtn}
@@ -1079,7 +1083,10 @@ async function initializeChat() {
       const messageData = {
         text: text || '',
         userId: currentUser.uid,
-        userName: userName,
+        userName: userName, // Keep for backwards compatibility
+        fromUsername: currentUserDoc.username || '',
+        fromEmail: currentUser.email || '',
+        fromUserId: currentUser.uid,
         timestamp: Date.now()
       };
 
@@ -1129,8 +1136,9 @@ function initAccountPage() {
 
   const emailSpan = document.getElementById("account-email");
   const usernameInput = document.getElementById("account-username-input");
-  const usernameSaveButton = document.getElementById("account-username-save-button");
+  const usernameSaveButton = document.getElementById("account-username-save");
   const usernameStatus = document.getElementById("account-username-status");
+  const usernameSection = document.getElementById("account-username-section");
 
   const subscriptionLabel = document.getElementById("account-subscription-label");
 
@@ -1149,6 +1157,18 @@ function initAccountPage() {
 
   if (usernameInput) {
     usernameInput.value = currentUserDoc.username || "";
+    
+    // Show "No username set yet" if username is not set
+    if (!currentUserDoc.username) {
+      if (usernameStatus) {
+        usernameStatus.textContent = "No username set yet";
+        usernameStatus.className = "account-status";
+      }
+      // Add visual indicator
+      if (usernameSection) {
+        usernameSection.classList.add("needs-username");
+      }
+    }
   }
 
   // 2) Subscription days left
@@ -1177,42 +1197,64 @@ function initAccountPage() {
     }
   }
 
-  // 3) Username change handler
-  if (usernameSaveButton && usernameInput) {
+  // 3) Username change handler with Cloud Function
+  if (usernameSaveButton && usernameInput && usernameStatus) {
     usernameSaveButton.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (usernameStatus) usernameStatus.textContent = "";
+      usernameStatus.textContent = "";
+      usernameStatus.className = "account-status";
 
-      const newUsername = usernameInput.value.trim();
-      if (!newUsername) {
-        if (usernameStatus) usernameStatus.textContent = "Username cannot be empty.";
+      const desiredUsername = usernameInput.value.trim();
+      
+      // Client-side validation
+      if (!desiredUsername) {
+        usernameStatus.textContent = "Username is required.";
+        usernameStatus.className = "account-status error";
+        return;
+      }
+      
+      if (desiredUsername.length < 3 || desiredUsername.length > 20) {
+        usernameStatus.textContent = "Username must be between 3 and 20 characters.";
+        usernameStatus.className = "account-status error";
+        return;
+      }
+      
+      // Only allow letters, numbers, underscores, and periods
+      if (!/^[a-zA-Z0-9._]+$/.test(desiredUsername)) {
+        usernameStatus.textContent = "Username can only contain letters, numbers, periods, and underscores.";
+        usernameStatus.className = "account-status error";
         return;
       }
 
       try {
-        // Check if username is already taken (excluding current user)
-        const usernameCheck = await window.firebaseDb.collection("users")
-          .where("username", "==", newUsername)
-          .get();
+        // Call the Cloud Function
+        const claimUsernameFn = functions.httpsCallable("claimUsername");
+        usernameStatus.textContent = "Saving username...";
+        usernameStatus.className = "account-status pending";
+
+        const result = await claimUsernameFn({ username: desiredUsername });
+        const finalUsername = result.data.username;
         
-        const isTaken = usernameCheck.docs.some(doc => doc.id !== currentUser.uid);
+        usernameInput.value = finalUsername || desiredUsername;
+        currentUserDoc.username = finalUsername || desiredUsername;
+        usernameStatus.textContent = "Username saved!";
+        usernameStatus.className = "account-status success";
         
-        if (isTaken) {
-          if (usernameStatus) usernameStatus.textContent = "Username is already taken. Please choose another one.";
-          return;
+        // Remove needs-username indicator
+        if (usernameSection) {
+          usernameSection.classList.remove("needs-username");
         }
-
-        const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
-        await userDocRef.update({
-          username: newUsername,
-          updatedAt: getServerTimestamp()
-        });
-
-        currentUserDoc.username = newUsername;
-        if (usernameStatus) usernameStatus.textContent = "Username updated successfully.";
-      } catch (err) {
-        console.error("Error updating username:", err);
-        if (usernameStatus) usernameStatus.textContent = "Failed to update username. Please try again.";
+      } catch (error) {
+        console.error("Error claiming username:", error);
+        
+        if (error.code === "functions/invalid-argument" || error.code === "username-invalid") {
+          usernameStatus.textContent = error.message || "Invalid username format.";
+        } else if (error.code === "username-taken") {
+          usernameStatus.textContent = "That username is already taken. Please choose another.";
+        } else {
+          usernameStatus.textContent = "Could not save username. Please try again.";
+        }
+        usernameStatus.className = "account-status error";
       }
     });
   }
@@ -2156,10 +2198,13 @@ function initAdminSlipRequests() {
           : "";
 
         const status = data.status || "pending";
+        
+        // Prefer username over email when displaying requester
+        const requesterDisplay = data.username || data.userEmail || "Unknown";
 
         card.innerHTML = `
           <div class="admin-slip-request-meta">
-            <div><strong>${data.userEmail || ""}</strong> (${data.tier || ""})</div>
+            <div><strong>${requesterDisplay}</strong> (${data.tier || ""})</div>
             <div>Sport: ${data.sport || ""}</div>
             <div>Created: ${createdAt}</div>
             <div>Status: <span class="status-${status}">${status}</span></div>
