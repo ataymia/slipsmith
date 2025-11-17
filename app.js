@@ -784,20 +784,74 @@ async function initializeChat() {
   const messagesContainer = document.getElementById("chat-messages");
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
+  const imageButton = document.getElementById("chat-image-button");
+  const imageInput = document.getElementById("chat-image-input");
+  const imagePreview = document.getElementById("chat-image-preview");
+  const previewImg = document.getElementById("chat-preview-img");
+  const removeImageBtn = document.getElementById("chat-remove-image");
 
   if (!messagesContainer || !chatForm || !chatInput) return;
+
+  let selectedImage = null;
+
+  // Handle image selection button
+  if (imageButton && imageInput) {
+    imageButton.addEventListener('click', () => {
+      imageInput.click();
+    });
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        selectedImage = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Handle remove image preview
+  if (removeImageBtn) {
+    removeImageBtn.addEventListener('click', () => {
+      selectedImage = null;
+      imageInput.value = '';
+      imagePreview.style.display = 'none';
+      previewImg.src = '';
+    });
+  }
+
+  // Check if current user is admin
+  const isAdmin = currentUserDoc && currentUserDoc.role === 'admin';
 
   // Listen for new messages
   onChatMessages((messages) => {
     messagesContainer.innerHTML = messages.map(msg => {
       const isOwn = msg.userId === currentUser.uid;
+      const imageHtml = msg.imageUrl ? `
+        <div class="message-image">
+          <img src="${msg.imageUrl}" alt="Shared image" onclick="window.open('${msg.imageUrl}', '_blank')">
+        </div>
+      ` : '';
+      
+      const deleteBtn = isAdmin ? `
+        <button class="btn-delete-message" onclick="window.deleteChatMessageById('${msg.id}')">Delete</button>
+      ` : '';
+      
       return `
-        <div class="chat-message ${isOwn ? 'own-message' : ''}">
+        <div class="chat-message ${isOwn ? 'own-message' : ''}" data-message-id="${msg.id}">
           <div class="message-header">
             <span class="message-user">${msg.userName || 'Anonymous'}</span>
-            <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+              ${deleteBtn}
+            </div>
           </div>
-          <div class="message-text">${msg.text}</div>
+          ${msg.text ? `<div class="message-text">${msg.text}</div>` : ''}
+          ${imageHtml}
         </div>
       `;
     }).join('');
@@ -813,17 +867,33 @@ async function initializeChat() {
   newChatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = document.getElementById("chat-input").value.trim();
-    if (!text) return;
+    
+    // Allow sending if there's text or an image
+    if (!text && !selectedImage) return;
 
     try {
       const userName = currentUserDoc.username || currentUser.email.split('@')[0];
-      await sendChatMessage({
-        text,
+      const messageData = {
+        text: text || '',
         userId: currentUser.uid,
         userName: userName,
         timestamp: Date.now()
-      });
+      };
+
+      // Upload image if selected
+      if (selectedImage) {
+        const uploadResult = await uploadChatImage(selectedImage);
+        messageData.imageUrl = uploadResult.url;
+      }
+
+      await sendChatMessage(messageData);
+      
+      // Clear input and image
       document.getElementById("chat-input").value = '';
+      selectedImage = null;
+      document.getElementById("chat-image-input").value = '';
+      document.getElementById("chat-image-preview").style.display = 'none';
+      document.getElementById("chat-preview-img").src = '';
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
@@ -1388,6 +1458,59 @@ async function getPostsByTier(userTier) {
   }
 }
 
+async function uploadChatImage(file) {
+  try {
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const storageRef = storage.ref(`chat/${fileName}`);
+
+    console.log('Uploading chat image:', fileName);
+    const snapshot = await storageRef.put(file);
+    const downloadURL = await snapshot.ref.getDownloadURL();
+
+    console.log('Chat image uploaded successfully:', downloadURL);
+    return {
+      url: downloadURL,
+      name: fileName,
+      type: file.type,
+      size: file.size
+    };
+  } catch (error) {
+    console.error('Error uploading chat image:', error);
+    throw error;
+  }
+}
+
+async function deleteChatMessage(messageId) {
+  try {
+    // Get the message first to check if it has an image
+    const messageDoc = await db.collection('chat').doc(messageId).get();
+    
+    if (messageDoc.exists) {
+      const messageData = messageDoc.data();
+      
+      // Delete the image from storage if it exists
+      if (messageData.imageUrl) {
+        try {
+          const storageRef = storage.refFromURL(messageData.imageUrl);
+          await storageRef.delete();
+          console.log('Chat image deleted from storage:', messageData.imageUrl);
+        } catch (storageError) {
+          console.warn('Could not delete image from storage:', storageError);
+          // Continue with message deletion even if image deletion fails
+        }
+      }
+      
+      // Delete the message document
+      await db.collection('chat').doc(messageId).delete();
+      console.log('Chat message deleted:', messageId);
+    }
+  } catch (error) {
+    console.error('Error deleting chat message:', error);
+    throw error;
+  }
+}
+
 async function uploadMedia(file) {
   try {
     const timestamp = Date.now();
@@ -1495,6 +1618,26 @@ function formatTime(timestamp) {
   });
 }
 
+// Wrapper function for delete that can be called from onclick
+window.deleteChatMessageById = async function(messageId) {
+  if (!currentUserDoc || currentUserDoc.role !== 'admin') {
+    alert('Only admins can delete messages.');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete this message?')) {
+    return;
+  }
+  
+  try {
+    await deleteChatMessage(messageId);
+    console.log('Message deleted successfully');
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    alert('Failed to delete message. Please try again.');
+  }
+};
+
 // Export functions to window for use in HTML
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
@@ -1512,6 +1655,8 @@ window.getAllPosts = getAllPosts;
 window.getPostsByTier = getPostsByTier;
 window.uploadMedia = uploadMedia;
 window.deleteMedia = deleteMedia;
+window.uploadChatImage = uploadChatImage;
+window.deleteChatMessage = deleteChatMessage;
 window.sendChatMessage = sendChatMessage;
 window.onChatMessages = onChatMessages;
 window.stopChatListener = stopChatListener;
