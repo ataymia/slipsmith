@@ -200,81 +200,103 @@ function updateAdminLinkVisibility() {
 // AUTH STATE LISTENER (ROUTING + PAGE INIT)
 // ============================================================================
 
+// DEBUG: verbose auth state logging to diagnose login redirect issue
+// Replace the existing auth.onAuthStateChanged(...) handler with this block.
+
 auth.onAuthStateChanged(async (user) => {
+  // Lightweight helper to print a standard debug object
+  function logDebug(stage, extra = {}) {
+    const page = getCurrentPage();
+    console.groupCollapsed(`[DEBUG][auth] ${stage} — page=${page}`);
+    try {
+      console.log('auth.currentUser', auth && auth.currentUser);
+      console.log('window.firebaseAuth.currentUser', window.firebaseAuth && window.firebaseAuth.currentUser);
+      console.log('window.auth (window.auth.currentUser)', window.auth && window.auth.currentUser);
+    } catch (e) {
+      console.log('error reading auth globals', e);
+    }
+    console.log('app currentUser variable', currentUser);
+    console.log('app currentUserDoc variable', currentUserDoc);
+    console.log('stored token (Auth.getToken)', (typeof Auth !== 'undefined' && Auth.getToken) ? Auth.getToken() : null);
+    try {
+      console.log('localStorage authToken present?', !!localStorage.getItem('authToken'));
+    } catch (e) {
+      console.log('localStorage read error', e);
+    }
+    if (extra.note) console.log('note:', extra.note);
+    if (extra.err) console.log('error:', extra.err);
+    console.groupEnd();
+  }
+
+  logDebug('onAuthStateChanged - ENTER', { note: `raw user object present? ${!!user}` });
+
   currentUser = user;
   const page = getCurrentPage();
 
+  // If no user -> existing behavior
   if (!user) {
+    logDebug('no user - routing to public/login if necessary', { note: 'User is null or signed out' });
     currentUserDoc = null;
-    Auth.clearToken();
+    Auth.clearToken && Auth.clearToken();
     updateAuthUI();
 
-    // Protected pages go to login
     if (page === "portal" || page === "admin" || page === "account") {
+      console.log('[auth routing] redirecting to login.html because user is not authenticated');
       window.location.href = "login.html";
       return;
     }
 
-    // Public pages
     if (page === "plans") {
       initPlansPage();
     } else if (page === "login") {
-      initLoginPage(); // no user, so show login form
+      initLoginPage(); // show login form
     } else {
       initPublicPage(page);
     }
     return;
   }
 
-  // User is logged in; load their Firestore profile
+  // User is present — log and attempt to load user profile
+  logDebug('user present - attempting to load profile', { note: `uid=${user.uid} email=${user.email}` });
+
   try {
     const userDocRef = db.collection("users").doc(user.uid);
-    const userDocSnap = await userDocRef.get();
+    let userDocSnap = await userDocRef.get();
 
+    logDebug('after user doc fetch', { note: `userDocSnap.exists=${userDocSnap.exists}` });
+
+    // If missing, try to create minimal profile (if you previously added fallback)
     if (!userDocSnap.exists) {
-      console.warn("============================================================");
-      console.warn("PROFILE NOT FOUND: Auto-creating minimal Firestore profile");
-      console.warn("User UID:", user.uid);
-      console.warn("User Email:", user.email);
-      console.warn("============================================================");
-      
-      // Auto-create a minimal Firestore profile document to unblock the user
+      console.warn('[auth debug] profile missing - attempting minimal profile creation');
       try {
-        const newUserProfile = {
-          email: user.email,
-          tier: "starter",
-          role: "user",
+        const minimalProfile = {
+          email: user.email || null,
           createdAt: getServerTimestamp(),
-          updatedAt: getServerTimestamp(),
+          tier: "starter",
+          username: null,
           mustChangePassword: false
         };
-        
-        await userDocRef.set(newUserProfile);
-        console.log("✓ Minimal profile created successfully");
-        
-        // Set currentUserDoc to the newly created profile
-        currentUserDoc = newUserProfile;
+        await userDocRef.set(minimalProfile, { merge: true });
+        userDocSnap = await userDocRef.get();
+        logDebug('after profile creation attempt', { note: `created? ${userDocSnap.exists}` });
       } catch (createErr) {
-        console.error("Failed to create profile document:", createErr);
-        console.error("User will be blocked until profile is manually created.");
-        
-        // Show error to user since auto-creation failed
+        logDebug('profile creation failed', { err: createErr });
+        // Fall back to showing the profile-setup-required UI (existing behavior)
         currentUserDoc = null;
         updateAuthUI();
-        
         if (page === "login") {
           initLoginPage();
           const errorDiv = document.getElementById("login-error");
           if (errorDiv) {
-            errorDiv.textContent = "Unable to set up your profile. Please contact support.";
+            errorDiv.textContent = "Your account exists but profile setup is incomplete. Please contact support.";
             errorDiv.style.display = "block";
           }
         } else if (page === "portal" || page === "admin") {
           const authRequired = document.getElementById("auth-required");
           if (authRequired) {
             authRequired.innerHTML = `
-              <h2>⚠️ Profile Setup Failed</h2>
-              <p>We couldn't set up your profile automatically.</p>
+              <h2>⚠️ Profile Setup Required</h2>
+              <p>Your account is authenticated but your profile is incomplete.</p>
               <p>User: ${user.email}</p>
               <p>Please contact support to complete your profile setup.</p>
               <button onclick="auth.signOut().then(() => window.location.href = 'login.html')" class="btn btn-primary">Sign Out</button>
@@ -284,20 +306,24 @@ auth.onAuthStateChanged(async (user) => {
         }
         return;
       }
-    } else {
-      currentUserDoc = userDocSnap.data();
     }
-    
-    // Store auth token (using user ID as token for simplicity)
-    Auth.setToken(user.uid);
-    
+
+    // If we reach here, we have a userDocSnap
+    currentUserDoc = userDocSnap.exists ? userDocSnap.data() : null;
+    logDebug('final userDoc loaded', { note: `username=${currentUserDoc && currentUserDoc.username} mustChangePassword=${currentUserDoc && !!currentUserDoc.mustChangePassword}` });
+
+    // store token and update UI
+    Auth.setToken && Auth.setToken(user.uid);
     updateAuthUI();
 
     const needsPasswordChange = !!currentUserDoc.mustChangePassword;
     const hasUsername = !!currentUserDoc.username;
 
+    logDebug('routing decision', { note: `needsPasswordChange=${needsPasswordChange} hasUsername=${hasUsername} page=${page}` });
+
     if (page === "admin") {
       if (currentUserDoc.role !== "admin") {
+        console.log('[auth routing] non-admin user tried to access admin -> redirect to portal');
         window.location.href = "portal.html";
         return;
       }
@@ -309,10 +335,13 @@ auth.onAuthStateChanged(async (user) => {
     } else if (page === "login") {
       // Logged-in user visiting login.html
       if (needsPasswordChange) {
+        console.log('[auth routing] user needs password change -> showing password setup');
         initLoginPage(false, true); // passwordOnly = true
       } else if (!hasUsername) {
+        console.log('[auth routing] user missing username -> showing username setup');
         initLoginPage(true, false); // usernameOnly = true
       } else {
+        console.log('[auth routing] user fully setup -> redirecting to portal.html');
         window.location.href = "portal.html";
       }
     } else if (page === "plans") {
@@ -321,6 +350,7 @@ auth.onAuthStateChanged(async (user) => {
       initPublicPage(page);
     }
   } catch (err) {
+    logDebug('error fetching user profile', { err });
     console.error("Error fetching user profile:", err);
   }
 });
