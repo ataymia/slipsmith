@@ -978,7 +978,16 @@ async function loadPosts(userTier) {
 
 async function initializeChat() {
   const messagesContainer = document.getElementById("chat-messages");
-  const chatForm = document.getElementById("chat-form");
+  let chatForm = document.getElementById("chat-form");
+
+  if (!messagesContainer || !chatForm) return;
+
+  // 🔁 Replace the form first so we don't keep stale event handlers
+  const newChatForm = chatForm.cloneNode(true);
+  chatForm.parentNode.replaceChild(newChatForm, chatForm);
+  chatForm = newChatForm;
+
+  // NOW re-grab all DOM elements from the new form
   const chatInput = document.getElementById("chat-input");
   const imageButton = document.getElementById("chat-image-button");
   const imageInput = document.getElementById("chat-image-input");
@@ -986,7 +995,7 @@ async function initializeChat() {
   const previewImg = document.getElementById("chat-preview-img");
   const removeImageBtn = document.getElementById("chat-remove-image");
 
-  if (!messagesContainer || !chatForm || !chatInput) return;
+  if (!chatInput) return;
 
   let selectedImage = null;
 
@@ -1058,12 +1067,9 @@ async function initializeChat() {
   });
 
   // Handle message sending
-  const newChatForm = chatForm.cloneNode(true);
-  chatForm.parentNode.replaceChild(newChatForm, chatForm);
-
-  newChatForm.addEventListener('submit', async (e) => {
+  chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const text = document.getElementById("chat-input").value.trim();
+    const text = chatInput.value.trim();
     
     // Allow sending if there's text or an image
     if (!text && !selectedImage) return;
@@ -1087,11 +1093,11 @@ async function initializeChat() {
       await sendChatMessage(messageData);
       
       // Clear input and image
-      document.getElementById("chat-input").value = '';
+      chatInput.value = '';
       selectedImage = null;
-      document.getElementById("chat-image-input").value = '';
-      document.getElementById("chat-image-preview").style.display = 'none';
-      document.getElementById("chat-preview-img").src = '';
+      imageInput.value = '';
+      imagePreview.style.display = 'none';
+      previewImg.src = '';
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
@@ -2165,11 +2171,19 @@ function initAdminSlipRequests() {
                 ? `
                   <textarea class="admin-slip-response-input" data-id="${id}"
                     placeholder="Type your slip or response to send to this user"></textarea>
+                  <div style="margin: 0.5rem 0;">
+                    <label for="admin-slip-attachment-${id}" class="btn btn-outline btn-sm">📎 Attach Image</label>
+                    <input type="file" id="admin-slip-attachment-${id}" class="admin-slip-attachment" data-id="${id}" accept="image/*" style="display: none;">
+                    <span class="admin-slip-attachment-name" data-id="${id}" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
+                  </div>
                   <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
                   <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
                 `
-                : data.responseSlip
-                ? `<p><strong>Response:</strong> ${data.responseSlip}</p>`
+                : data.responseSlip || data.responseAttachmentUrl
+                ? `
+                  <p><strong>Response:</strong> ${data.responseSlip || ""}</p>
+                  ${data.responseAttachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${data.responseAttachmentUrl}" alt="Response attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${data.responseAttachmentUrl}', '_blank')"></div>` : ''}
+                `
                 : ""
             }
           </div>
@@ -2183,17 +2197,34 @@ function initAdminSlipRequests() {
 }
 
 function attachSlipRequestHandlers() {
+  // Handle file selection for attachments
+  document.querySelectorAll(".admin-slip-attachment").forEach((input) => {
+    input.addEventListener("change", (e) => {
+      const id = e.target.getAttribute("data-id");
+      const nameSpan = document.querySelector(`.admin-slip-attachment-name[data-id="${id}"]`);
+      const file = e.target.files[0];
+      if (file && nameSpan) {
+        nameSpan.textContent = file.name;
+      } else if (nameSpan) {
+        nameSpan.textContent = '';
+      }
+    });
+  });
+
   // Accept buttons
   document.querySelectorAll(".admin-slip-accept").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.getAttribute("data-id");
       const textarea = document.querySelector(`.admin-slip-response-input[data-id="${id}"]`);
+      const attachmentInput = document.querySelector(`.admin-slip-attachment[data-id="${id}"]`);
       
       if (!textarea) return;
       
       const responseSlip = textarea.value.trim();
-      if (!responseSlip) {
-        alert("Please enter a response slip.");
+      const attachmentFile = attachmentInput ? attachmentInput.files[0] : null;
+      
+      if (!responseSlip && !attachmentFile) {
+        alert("Please enter a response slip or attach an image.");
         return;
       }
 
@@ -2205,10 +2236,27 @@ function attachSlipRequestHandlers() {
         const requestDoc = await db.collection("slipRequests").doc(id).get();
         const requestData = requestDoc.data();
 
+        let attachmentUrl = null;
+        let attachmentPath = null;
+
+        // Upload attachment if provided
+        if (attachmentFile && storage) {
+          const timestamp = Date.now();
+          const fileName = `${timestamp}_${attachmentFile.name}`;
+          const storagePath = `slipResponses/${currentUser.uid}/${fileName}`;
+          const storageRef = storage.ref(storagePath);
+          
+          const snapshot = await storageRef.put(attachmentFile);
+          attachmentUrl = await snapshot.ref.getDownloadURL();
+          attachmentPath = storagePath;
+        }
+
         // Update the slip request
         await db.collection("slipRequests").doc(id).update({
           status: "accepted",
           responseSlip: responseSlip,
+          responseAttachmentUrl: attachmentUrl,
+          responseAttachmentPath: attachmentPath,
           updatedAt: getServerTimestamp()
         });
 
@@ -2226,8 +2274,8 @@ function attachSlipRequestHandlers() {
           toUsername: recipientData.username || "",
           subject: `Slip request response (${requestData.sport || ""})`,
           body: responseSlip,
-          attachmentUrl: null,
-          attachmentPath: null,
+          attachmentUrl: attachmentUrl,
+          attachmentPath: attachmentPath,
           participants: [currentUser.uid, requestData.userId],
           readBy: [currentUser.uid],
           createdAt: getServerTimestamp(),
