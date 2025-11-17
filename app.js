@@ -68,11 +68,24 @@ function updateAuthUI() {
   
   // Get all UI elements that need to be shown/hidden
   const accountLinks = document.querySelectorAll('#account-link, #account-btn');
+  const inboxLinks = document.querySelectorAll('#inbox-link');
   const logoutButtons = document.querySelectorAll('#logout-button, #logout-btn');
   const loginLinks = document.querySelectorAll('a[href="login.html"]');
   
   // Show/hide account links
   accountLinks.forEach(el => {
+    if (el) {
+      if (isAuth) {
+        el.classList.remove('hidden');
+        el.style.display = ''; // Clear inline styles
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+  });
+  
+  // Show/hide inbox links
+  inboxLinks.forEach(el => {
     if (el) {
       if (isAuth) {
         el.classList.remove('hidden');
@@ -184,6 +197,7 @@ function getCurrentPage() {
   if (normalized.endsWith("admin.html") || normalized.endsWith("/admin")) return "admin";
   if (normalized.endsWith("plans.html") || normalized.endsWith("/plans")) return "plans";
   if (normalized.endsWith("account.html") || normalized.endsWith("/account")) return "account";
+  if (normalized.endsWith("inbox.html") || normalized.endsWith("/inbox")) return "inbox";
   if (normalized.endsWith("index.html") || normalized === "/" || normalized === "") return "index";
 
   return "other";
@@ -264,7 +278,7 @@ auth.onAuthStateChanged(async (user) => {
     Auth.clearToken && Auth.clearToken();
     updateAuthUI();
 
-    if (page === "portal" || page === "admin" || page === "account") {
+    if (page === "portal" || page === "admin" || page === "account" || page === "inbox") {
       console.log('[auth routing] redirecting to login.html because user is not authenticated');
       window.location.href = "login.html";
       return;
@@ -352,6 +366,8 @@ auth.onAuthStateChanged(async (user) => {
       initPortalPage();
     } else if (page === "account") {
       initAccountPage();
+    } else if (page === "inbox") {
+      initInboxPage();
     } else if (page === "login") {
       // Logged-in user visiting login.html
       if (needsPasswordChange) {
@@ -738,6 +754,149 @@ function initPortalPage() {
 
   // Load posts based on tier
   loadPosts(tier);
+
+  // Initialize slip request section
+  initSlipRequestForPortal();
+}
+
+// ============================================================================
+// SLIP REQUEST FOR PORTAL
+// ============================================================================
+
+function initSlipRequestForPortal() {
+  const section = document.getElementById("slip-request-section");
+  const info = document.getElementById("slip-request-info");
+  const form = document.getElementById("slip-request-form");
+  const sportSelect = document.getElementById("slip-request-sport");
+  const textArea = document.getElementById("slip-request-text");
+  const statusDiv = document.getElementById("slip-request-status");
+  const submitBtn = document.getElementById("slip-request-submit");
+
+  if (!section || !currentUser || !currentUserDoc) return;
+
+  const tier = currentUserDoc.tier || "starter";
+  const isPro = tier === "pro";
+  const isVip = tier === "vip";
+
+  if (!isPro && !isVip) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "";
+  const maxRequests = isVip ? 7 : 2;
+
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  // Load existing request count for this month
+  db.collection("slipRequests")
+    .where("userId", "==", currentUser.uid)
+    .where("monthKey", "==", monthKey)
+    .get()
+    .then((snapshot) => {
+      const count = snapshot.size;
+      if (info) {
+        info.textContent = `You have used ${count} of ${maxRequests} slip requests for ${monthKey}.`;
+      }
+      if (count >= maxRequests && form) {
+        form.style.display = "none";
+        if (statusDiv) {
+          statusDiv.textContent = "You have reached your slip request limit for this month.";
+        }
+      }
+    })
+    .catch((err) => {
+      console.error("Error loading slip request count:", err);
+      if (info) {
+        info.textContent = "Unable to load slip request usage.";
+      }
+    });
+
+  if (!form) return;
+
+  // Remove existing listener by cloning
+  const newForm = form.cloneNode(true);
+  form.parentNode.replaceChild(newForm, form);
+
+  document.getElementById("slip-request-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const statusDiv = document.getElementById("slip-request-status");
+    const sportSelect = document.getElementById("slip-request-sport");
+    const textArea = document.getElementById("slip-request-text");
+    const submitBtn = document.getElementById("slip-request-submit");
+    
+    if (!statusDiv || !sportSelect || !textArea || !submitBtn) return;
+
+    statusDiv.textContent = "";
+    const sport = sportSelect.value;
+    const requestText = textArea.value.trim();
+
+    if (!sport) {
+      statusDiv.textContent = "Please select a sport.";
+      return;
+    }
+    if (!requestText) {
+      statusDiv.textContent = "Please describe your request.";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+
+    try {
+      // Re-check count to avoid double-submits
+      const snap = await db.collection("slipRequests")
+        .where("userId", "==", currentUser.uid)
+        .where("monthKey", "==", monthKey)
+        .get();
+
+      const used = snap.size;
+      if (used >= maxRequests) {
+        statusDiv.textContent = "You have already used your slip request limit for this month.";
+        document.getElementById("slip-request-form").style.display = "none";
+        return;
+      }
+
+      const nowTs = getServerTimestamp();
+
+      await db.collection("slipRequests").add({
+        userId: currentUser.uid,
+        userEmail: currentUser.email || currentUserDoc.email || "",
+        tier,
+        sport,
+        requestText,
+        status: "pending",
+        responseSlip: null,
+        monthKey,
+        createdAt: nowTs,
+        updatedAt: nowTs
+      });
+
+      statusDiv.textContent = "Your slip request has been submitted.";
+      textArea.value = "";
+      sportSelect.value = "";
+      
+      // Refresh the count display
+      const newSnap = await db.collection("slipRequests")
+        .where("userId", "==", currentUser.uid)
+        .where("monthKey", "==", monthKey)
+        .get();
+      const newCount = newSnap.size;
+      if (info) {
+        info.textContent = `You have used ${newCount} of ${maxRequests} slip requests for ${monthKey}.`;
+      }
+      if (newCount >= maxRequests) {
+        document.getElementById("slip-request-form").style.display = "none";
+      }
+    } catch (err) {
+      console.error("Error submitting slip request:", err);
+      statusDiv.textContent = "Failed to submit slip request. Please try again.";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit slip request";
+    }
+  });
 }
 
 async function loadPosts(userTier) {
@@ -1090,6 +1249,167 @@ function initAccountPage() {
 }
 
 // ============================================================================
+// INBOX PAGE
+// ============================================================================
+
+function initInboxPage() {
+  initLogoutHandler();
+  updateAuthUI();
+
+  const authRequired = document.getElementById("auth-required");
+  const inboxContent = document.getElementById("inbox-content");
+
+  if (!currentUser || !currentUserDoc) {
+    if (authRequired) authRequired.style.display = "block";
+    if (inboxContent) inboxContent.style.display = "none";
+    return;
+  }
+
+  if (authRequired) authRequired.style.display = "none";
+  if (inboxContent) inboxContent.style.display = "block";
+
+  const composeForm = document.getElementById("inbox-compose-form");
+  const toEmailInput = document.getElementById("inbox-to-email");
+  const subjectInput = document.getElementById("inbox-subject");
+  const bodyInput = document.getElementById("inbox-body");
+  const attachmentInput = document.getElementById("inbox-attachment");
+  const sendButton = document.getElementById("inbox-send-button");
+  const statusDiv = document.getElementById("inbox-compose-status");
+  const messagesList = document.getElementById("inbox-messages-list");
+
+  // Load messages
+  if (messagesList) {
+    db.collection("inboxMessages")
+      .where("participants", "array-contains", currentUser.uid)
+      .orderBy("createdAt", "desc")
+      .onSnapshot((snapshot) => {
+        if (snapshot.empty) {
+          messagesList.innerHTML = '<p class="no-content">No messages yet.</p>';
+          return;
+        }
+
+        messagesList.innerHTML = snapshot.docs.map(doc => {
+          const msg = doc.data();
+          const isFromMe = msg.fromUserId === currentUser.uid;
+          const otherEmail = isFromMe ? msg.toEmail : msg.fromEmail;
+          const direction = isFromMe ? "To" : "From";
+          const createdAt = msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleString() : "Unknown";
+
+          return `
+            <div class="inbox-message-card">
+              <div class="inbox-message-header">
+                <div>
+                  <strong>${direction}:</strong> ${otherEmail}
+                  ${msg.subject ? `<br><strong>Subject:</strong> ${msg.subject}` : ''}
+                </div>
+                <div class="inbox-message-time">${createdAt}</div>
+              </div>
+              <div class="inbox-message-body">${msg.body || ''}</div>
+              ${msg.attachmentUrl ? `
+                <div class="inbox-message-attachment">
+                  <img src="${msg.attachmentUrl}" alt="Attachment" onclick="window.open('${msg.attachmentUrl}', '_blank')">
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }, (error) => {
+        console.error('Error loading inbox messages:', error);
+        messagesList.innerHTML = '<p class="error">Error loading messages.</p>';
+      });
+  }
+
+  // Compose form handler
+  if (composeForm && toEmailInput && bodyInput && sendButton && statusDiv) {
+    // Remove existing listener by cloning
+    const newComposeForm = composeForm.cloneNode(true);
+    composeForm.parentNode.replaceChild(newComposeForm, composeForm);
+
+    newComposeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const statusDiv = document.getElementById("inbox-compose-status");
+      const sendButton = document.getElementById("inbox-send-button");
+      statusDiv.textContent = "";
+
+      const toEmail = document.getElementById("inbox-to-email").value.trim();
+      const subject = document.getElementById("inbox-subject").value.trim();
+      const body = document.getElementById("inbox-body").value.trim();
+      const attachmentInput = document.getElementById("inbox-attachment");
+      const attachmentFile = attachmentInput.files[0];
+
+      if (!toEmail || !body) {
+        statusDiv.textContent = "Please provide recipient email and message.";
+        return;
+      }
+
+      try {
+        sendButton.disabled = true;
+        sendButton.textContent = "Sending...";
+
+        // Look up recipient
+        const recipientSnap = await db.collection("users")
+          .where("email", "==", toEmail)
+          .limit(1)
+          .get();
+
+        if (recipientSnap.empty) {
+          statusDiv.textContent = "Recipient not found. Please check the email address.";
+          sendButton.disabled = false;
+          sendButton.textContent = "Send";
+          return;
+        }
+
+        const recipientDoc = recipientSnap.docs[0];
+        const recipientUid = recipientDoc.id;
+
+        let attachmentUrl = null;
+        let attachmentPath = null;
+
+        // Upload attachment if provided
+        if (attachmentFile) {
+          const timestamp = Date.now();
+          const fileName = `${timestamp}_${attachmentFile.name}`;
+          const storagePath = `inboxAttachments/${currentUser.uid}/${fileName}`;
+          const storageRef = storage.ref(storagePath);
+
+          const snapshot = await storageRef.put(attachmentFile);
+          attachmentUrl = await snapshot.ref.getDownloadURL();
+          attachmentPath = storagePath;
+        }
+
+        // Create inbox message
+        await db.collection("inboxMessages").add({
+          fromUserId: currentUser.uid,
+          fromEmail: currentUser.email || currentUserDoc.email || "",
+          toUserId: recipientUid,
+          toEmail: toEmail,
+          subject: subject || null,
+          body: body,
+          attachmentUrl: attachmentUrl,
+          attachmentPath: attachmentPath,
+          participants: [currentUser.uid, recipientUid],
+          readBy: [currentUser.uid],
+          createdAt: getServerTimestamp(),
+          updatedAt: getServerTimestamp()
+        });
+
+        statusDiv.textContent = "Message sent successfully!";
+        document.getElementById("inbox-to-email").value = "";
+        document.getElementById("inbox-subject").value = "";
+        document.getElementById("inbox-body").value = "";
+        document.getElementById("inbox-attachment").value = "";
+      } catch (error) {
+        console.error("Error sending message:", error);
+        statusDiv.textContent = "Failed to send message. Please try again.";
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = "Send";
+      }
+    });
+  }
+}
+
+// ============================================================================
 // ADMIN USER MANAGER
 // ============================================================================
 
@@ -1246,6 +1566,157 @@ function initAdminPage() {
   // Admin page has its own inline script for now
   // Initialize admin user manager if on admin page
   initAdminUserManager();
+  // Initialize admin slip requests
+  initAdminSlipRequests();
+}
+
+// ============================================================================
+// ADMIN SLIP REQUESTS
+// ============================================================================
+
+function initAdminSlipRequests() {
+  const list = document.getElementById("admin-slip-requests-list");
+  if (!list || !currentUser || !currentUserDoc || currentUserDoc.role !== "admin") {
+    return;
+  }
+
+  db.collection("slipRequests")
+    .orderBy("createdAt", "desc")
+    .limit(100)
+    .onSnapshot((snapshot) => {
+      if (snapshot.empty) {
+        list.innerHTML = '<p class="no-content">No slip requests yet.</p>';
+        return;
+      }
+
+      list.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const id = doc.id;
+
+        const card = document.createElement("div");
+        card.className = "admin-slip-request-card";
+
+        const createdAt = data.createdAt?.toDate
+          ? data.createdAt.toDate().toLocaleString()
+          : "";
+
+        const status = data.status || "pending";
+
+        card.innerHTML = `
+          <div class="admin-slip-request-meta">
+            <div><strong>${data.userEmail || ""}</strong> (${data.tier || ""})</div>
+            <div>Sport: ${data.sport || ""}</div>
+            <div>Created: ${createdAt}</div>
+            <div>Status: <span class="status-${status}">${status}</span></div>
+          </div>
+          <p class="admin-slip-request-text">${data.requestText || ""}</p>
+          <div class="admin-slip-request-actions">
+            ${
+              status === "pending"
+                ? `
+                  <textarea class="admin-slip-response-input" data-id="${id}"
+                    placeholder="Type your slip or response to send to this user"></textarea>
+                  <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
+                  <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
+                `
+                : data.responseSlip
+                ? `<p><strong>Response:</strong> ${data.responseSlip}</p>`
+                : ""
+            }
+          </div>
+        `;
+
+        list.appendChild(card);
+      });
+
+      attachSlipRequestHandlers();
+    });
+}
+
+function attachSlipRequestHandlers() {
+  // Accept buttons
+  document.querySelectorAll(".admin-slip-accept").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.getAttribute("data-id");
+      const textarea = document.querySelector(`.admin-slip-response-input[data-id="${id}"]`);
+      
+      if (!textarea) return;
+      
+      const responseSlip = textarea.value.trim();
+      if (!responseSlip) {
+        alert("Please enter a response slip.");
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        // Get the request data
+        const requestDoc = await db.collection("slipRequests").doc(id).get();
+        const requestData = requestDoc.data();
+
+        // Update the slip request
+        await db.collection("slipRequests").doc(id).update({
+          status: "accepted",
+          responseSlip: responseSlip,
+          updatedAt: getServerTimestamp()
+        });
+
+        // Create an inbox message to the user
+        await db.collection("inboxMessages").add({
+          fromUserId: currentUser.uid,
+          fromEmail: currentUser.email || currentUserDoc.email || "",
+          toUserId: requestData.userId,
+          toEmail: requestData.userEmail || "",
+          subject: `Slip request response (${requestData.sport || ""})`,
+          body: responseSlip,
+          attachmentUrl: null,
+          attachmentPath: null,
+          participants: [currentUser.uid, requestData.userId],
+          readBy: [currentUser.uid],
+          createdAt: getServerTimestamp(),
+          updatedAt: getServerTimestamp()
+        });
+
+        alert("Slip request accepted and response sent to user's inbox.");
+      } catch (error) {
+        console.error("Error accepting slip request:", error);
+        alert("Failed to accept slip request. Please try again.");
+        btn.disabled = false;
+        btn.textContent = "Accept & Send";
+      }
+    });
+  });
+
+  // Reject buttons
+  document.querySelectorAll(".admin-slip-reject").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.getAttribute("data-id");
+      
+      if (!confirm("Are you sure you want to reject this slip request?")) {
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        await db.collection("slipRequests").doc(id).update({
+          status: "rejected",
+          updatedAt: getServerTimestamp()
+        });
+
+        alert("Slip request rejected.");
+      } catch (error) {
+        console.error("Error rejecting slip request:", error);
+        alert("Failed to reject slip request. Please try again.");
+        btn.disabled = false;
+        btn.textContent = "Reject";
+      }
+    });
+  });
 }
 
 // ============================================================================

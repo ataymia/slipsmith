@@ -14,6 +14,7 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="plans.html">Plans</a></li>
                 <li><a href="portal.html">Portal</a></li>
+                <li><a href="inbox.html" id="inbox-link" class="hidden">Inbox</a></li>
                 <li><a href="account.html" id="account-link" class="hidden">Account</a></li>
                 <li><a href="admin.html" class="active" id="admin-link">Admin</a></li>
                 <li><button id="logout-button" class="btn btn-primary hidden">Log Out</button></li>
@@ -36,6 +37,7 @@
                     <div class="admin-tabs">
                         <button class="tab-btn active" data-tab="posts">Manage Posts</button>
                         <button class="tab-btn" data-tab="users">Manage Users</button>
+                        <button class="tab-btn" data-tab="slip-requests">Slip Requests</button>
                         <button class="tab-btn" data-tab="user-manager">Admin User Manager</button>
                     </div>
 
@@ -118,6 +120,14 @@
                             <div id="users-list" class="admin-list">
                                 <div class="loading">Loading users...</div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Slip Requests Tab -->
+                    <div id="slip-requests-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>Slip Requests</h2>
+                            <div id="admin-slip-requests-list"></div>
                         </div>
                     </div>
 
