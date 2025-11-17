@@ -1115,6 +1115,7 @@ function initAdminUserManager() {
   const usernameInput = document.getElementById("admin-user-username");
   const roleSelect = document.getElementById("admin-user-role");
   const tierSelect = document.getElementById("admin-user-tier");
+  const subscriptionEndsInput = document.getElementById("admin-user-subscription-ends");
   const mustChangeCheckbox = document.getElementById("admin-user-must-change-password");
   const tempPasswordInput = document.getElementById("admin-user-temp-password");
   const submitBtn = document.getElementById("admin-user-submit-button");
@@ -1143,6 +1144,7 @@ function initAdminUserManager() {
     const username = usernameInput ? usernameInput.value.trim() : "";
     const role = roleSelect ? roleSelect.value : "user";
     const tier = tierSelect ? tierSelect.value : "starter";
+    const subscriptionEndsRaw = subscriptionEndsInput ? subscriptionEndsInput.value : "";
     const mustChangePassword = mustChangeCheckbox ? mustChangeCheckbox.checked : false;
     const tempPasswordRaw = tempPasswordInput ? tempPasswordInput.value.trim() : "";
     const tempPassword = tempPasswordRaw === "" ? null : tempPasswordRaw;
@@ -1186,6 +1188,23 @@ function initAdminUserManager() {
       const data = result.data || {};
 
       console.log("adminUpsertUser result:", data);
+
+      // Update subscriptionEndsAt directly in Firestore if provided
+      if (subscriptionEndsRaw && data.uid) {
+        try {
+          const subscriptionEndsDate = new Date(subscriptionEndsRaw);
+          await db.collection("users").doc(data.uid).update({
+            subscriptionEndsAt: firebase.firestore.Timestamp.fromDate(subscriptionEndsDate),
+            updatedAt: getServerTimestamp()
+          });
+          console.log("Subscription end date updated:", subscriptionEndsDate);
+        } catch (subErr) {
+          console.error("Error updating subscription end date:", subErr);
+          if (statusDiv) {
+            statusDiv.textContent += " (Warning: Could not set subscription end date)";
+          }
+        }
+      }
 
       if (statusDiv) {
         statusDiv.className = "success-message";
