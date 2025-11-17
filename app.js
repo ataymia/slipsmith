@@ -152,15 +152,35 @@ async function signInCompat(email, password) {
 // PAGE DETECTION
 // ============================================================================
 
+/**
+ * Detects the current page from the URL pathname.
+ * 
+ * WHY THIS MATTERS:
+ * This function must recognize BOTH legacy filename-based routes (e.g. /login.html)
+ * AND modern clean URLs (e.g. /login) to ensure page initialization runs correctly.
+ * 
+ * SECURITY CONCERN:
+ * If getCurrentPage() returns "other" for /login, initLoginPage() never runs,
+ * the form submit handler is never attached, and the login form performs a
+ * standard HTML GET submit — exposing user credentials in the URL.
+ * 
+ * SOLUTION:
+ * This implementation normalizes the path (removes trailing slash, lowercases)
+ * and matches against both patterns to ensure proper page detection regardless
+ * of whether the server/CDN uses clean URLs or traditional .html extensions.
+ */
 function getCurrentPage() {
   const path = window.location.pathname.toLowerCase();
+  // Normalize: remove trailing slash (so "/login/" -> "/login")
+  const normalized = (path.endsWith("/") && path.length > 1) ? path.slice(0, -1) : path;
 
-  if (path.endsWith("login.html")) return "login";
-  if (path.endsWith("portal.html")) return "portal";
-  if (path.endsWith("admin.html")) return "admin";
-  if (path.endsWith("plans.html")) return "plans";
-  if (path.endsWith("account.html")) return "account";
-  if (path.endsWith("index.html") || path === "/" || path === "") return "index";
+  // Recognize both pretty routes and legacy filename-based routes
+  if (normalized.endsWith("login.html") || normalized.endsWith("/login")) return "login";
+  if (normalized.endsWith("portal.html") || normalized.endsWith("/portal")) return "portal";
+  if (normalized.endsWith("admin.html") || normalized.endsWith("/admin")) return "admin";
+  if (normalized.endsWith("plans.html") || normalized.endsWith("/plans")) return "plans";
+  if (normalized.endsWith("account.html") || normalized.endsWith("/account")) return "account";
+  if (normalized.endsWith("index.html") || normalized === "/" || normalized === "") return "index";
 
   return "other";
 }
