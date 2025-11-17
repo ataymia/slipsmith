@@ -201,22 +201,32 @@
     <!-- Main app logic -->
     <script src="app.js"></script>
     <script>
-        let currentUser = null;
-        let currentUserData = null;
         let editingPostId = null;
 
         // Initialize admin panel
         window.addEventListener('DOMContentLoaded', async () => {
             try {
-                currentUser = await getCurrentUser();
-                if (currentUser) {
-                    currentUserData = await getUserData(currentUser.uid);
-                    if (currentUserData?.role === 'admin') {
+                const user = await getCurrentUser();
+                if (user) {
+                    // Use the isAdmin helper from app.js to check admin status
+                    const adminStatus = await isAdmin(user.uid);
+                    const userData = await getUserData(user.uid);
+                    
+                    // Debug logging for admin access
+                    console.log('Admin gate:', {
+                        uid: user.uid,
+                        isAdmin: adminStatus,
+                        role: userData?.role,
+                        email: userData?.email || user.email
+                    });
+                    
+                    if (adminStatus) {
                         showAdminContent();
                     } else {
                         showAuthRequired();
                     }
                 } else {
+                    console.log('Admin gate: No user authenticated');
                     showAuthRequired();
                 }
             } catch (error) {
@@ -225,13 +235,17 @@
             }
         });
 
-        function showAuthRequired() {
+        async function showAuthRequired() {
             const authRequiredDiv = document.getElementById('auth-required');
             
+            // Get current user from app.js globals or fetch it
+            const user = await getCurrentUser();
+            const userData = user ? await getUserData(user.uid) : null;
+            
             // If user is logged in but not admin, show detailed message
-            if (currentUser && currentUserData) {
-                const userEmail = currentUserData.email || currentUser.email || 'Unknown';
-                const userRole = currentUserData.role || 'none';
+            if (user && userData) {
+                const userEmail = userData.email || user.email || 'Unknown';
+                const userRole = userData.role || 'none';
                 
                 authRequiredDiv.innerHTML = `
                     <h2>🚫 Admin Access Denied</h2>
@@ -246,7 +260,7 @@
                                 <ul style="margin-top: 0.5rem;">
                                     <li>Go to Firebase Console → Firestore Database</li>
                                     <li>Navigate to collection: <code>users</code></li>
-                                    <li>Find document with ID: <code>${currentUser.uid}</code></li>
+                                    <li>Find document with ID: <code>${user.uid}</code></li>
                                     <li>Add or update field: <code>role</code> = <code>"admin"</code></li>
                                     <li>Refresh this page</li>
                                 </ul>
