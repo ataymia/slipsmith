@@ -38,6 +38,7 @@
                         <button class="tab-btn active" data-tab="posts">Manage Posts</button>
                         <button class="tab-btn" data-tab="users">Manage Users</button>
                         <button class="tab-btn" data-tab="slip-requests">Slip Requests</button>
+                        <button class="tab-btn" data-tab="feed-manager">Sports Feed</button>
                         <button class="tab-btn" data-tab="user-manager">Admin User Manager</button>
                         <button class="tab-btn" data-tab="slip-tools">Slip Tools</button>
                     </div>
@@ -198,6 +199,96 @@
                     </div>
 
                     <!-- Slip Tools Tab -->
+                    <!-- Feed Manager Tab -->
+                    <div id="feed-manager-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>🔴 Sports Feed Manager</h2>
+                            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Manage the Live Sports Feed visible on the portal</p>
+                            
+                            <div style="display: grid; gap: 1.5rem; margin-bottom: 2rem;">
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--accent-green);">
+                                    <h3 style="color: var(--accent-green); margin-bottom: 0.5rem;">🎲 Load Sample Feed Data</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                        Quickly populate the sports feed with sample injury reports, suspensions, and news items for testing.
+                                    </p>
+                                    <button onclick="loadSampleFeedData()" class="btn btn-primary" id="load-sample-btn">
+                                        Load 10 Sample Items
+                                    </button>
+                                    <button onclick="clearSampleFeedData()" class="btn btn-outline" style="margin-left: 0.5rem;">
+                                        Clear Sample Data
+                                    </button>
+                                    <div id="feed-sample-status" style="margin-top: 1rem;"></div>
+                                </div>
+
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px;">
+                                    <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">➕ Add Custom Feed Item</h3>
+                                    <form id="custom-feed-form" style="display: grid; gap: 1rem;">
+                                        <div>
+                                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Sport</label>
+                                            <select id="feed-sport" class="form-control" required>
+                                                <option value="NBA">NBA</option>
+                                                <option value="NFL">NFL</option>
+                                                <option value="NHL">NHL</option>
+                                                <option value="MLB">MLB</option>
+                                                <option value="UCL">UCL</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Type</label>
+                                            <select id="feed-type" class="form-control" required>
+                                                <option value="injury">Injury</option>
+                                                <option value="suspension">Suspension</option>
+                                                <option value="news">News</option>
+                                                <option value="line_movement">Line Movement</option>
+                                                <option value="depth_chart">Depth Chart</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Headline</label>
+                                            <input type="text" id="feed-headline" class="form-control" placeholder="Player Name - Status" required>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Details</label>
+                                            <textarea id="feed-details" class="form-control" rows="2" placeholder="Additional details..."></textarea>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                            <div>
+                                                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Player (optional)</label>
+                                                <input type="text" id="feed-player" class="form-control" placeholder="Player name">
+                                            </div>
+                                            <div>
+                                                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Team (optional)</label>
+                                                <input type="text" id="feed-team" class="form-control" placeholder="Team name">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">URL (optional)</label>
+                                            <input type="url" id="feed-url" class="form-control" placeholder="https://...">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Add Feed Item</button>
+                                        <div id="feed-custom-status"></div>
+                                    </form>
+                                </div>
+
+                                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px;">
+                                    <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">📊 API Integration</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                        Set up automated sports news fetching using Firebase Cloud Functions. See documentation for details.
+                                    </p>
+                                    <a href="../SPORTS_API_INTEGRATION.md" class="btn btn-outline" target="_blank">View Integration Guide</a>
+                                    <a href="../functions-example/README.md" class="btn btn-outline" target="_blank" style="margin-left: 0.5rem;">Cloud Functions Setup</a>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 style="margin-bottom: 1rem;">Current Feed Items</h3>
+                                <div id="feed-items-list" style="display: flex; flex-direction: column; gap: 1rem; max-height: 500px; overflow-y: auto;">
+                                    <p style="color: var(--text-muted);">Loading feed items...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="slip-tools-tab" class="tab-content">
                         <div class="admin-card">
                             <h2>🎯 Slip Tools</h2>
@@ -614,6 +705,319 @@
                 console.error('Logout error:', error);
             }
         });
+
+        // ==========================================================================
+        // FEED MANAGEMENT FUNCTIONS
+        // ==========================================================================
+
+        async function loadSampleFeedData() {
+            const statusDiv = document.getElementById('feed-sample-status');
+            const button = document.getElementById('load-sample-btn');
+            
+            button.disabled = true;
+            button.textContent = 'Loading...';
+            statusDiv.textContent = '';
+            
+            const sampleData = [
+                {
+                    sport: 'NBA',
+                    type: 'injury',
+                    headline: 'LeBron James - Questionable',
+                    details: 'Left ankle soreness. Day-to-day, questionable for next game.',
+                    player: 'LeBron James',
+                    team: 'Los Angeles Lakers',
+                    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nba/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NFL',
+                    type: 'injury',
+                    headline: 'Patrick Mahomes - Out',
+                    details: 'High ankle sprain. Ruled out for Sunday\'s game.',
+                    player: 'Patrick Mahomes',
+                    team: 'Kansas City Chiefs',
+                    publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nfl/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NBA',
+                    type: 'suspension',
+                    headline: 'Draymond Green - Suspended 5 Games',
+                    details: 'Suspended for flagrant foul. Will miss games against Nuggets, Suns, and Clippers.',
+                    player: 'Draymond Green',
+                    team: 'Golden State Warriors',
+                    publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nba/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'MLB',
+                    type: 'news',
+                    headline: 'Yankees Sign Star Pitcher',
+                    details: 'New York Yankees sign ace pitcher to 5-year, $150M deal.',
+                    team: 'New York Yankees',
+                    publishedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/mlb/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NHL',
+                    type: 'injury',
+                    headline: 'Connor McDavid - Day to Day',
+                    details: 'Upper body injury. Listed as day-to-day.',
+                    player: 'Connor McDavid',
+                    team: 'Edmonton Oilers',
+                    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nhl/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NBA',
+                    type: 'news',
+                    headline: 'Lakers vs Warriors - Line Movement',
+                    details: 'Spread moved from Lakers -3.5 to -5.0 following injury report.',
+                    team: 'Los Angeles Lakers',
+                    publishedAt: new Date(Date.now() - 30 * 60 * 1000),
+                    url: 'https://www.espn.com/nba/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NFL',
+                    type: 'news',
+                    headline: 'Bills Release Depth Chart Update',
+                    details: 'Starting lineup changes announced. Rookie WR moves to WR2 position.',
+                    team: 'Buffalo Bills',
+                    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nfl/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'NBA',
+                    type: 'injury',
+                    headline: 'Stephen Curry - Probable',
+                    details: 'Right shoulder soreness improving. Upgraded to probable.',
+                    player: 'Stephen Curry',
+                    team: 'Golden State Warriors',
+                    publishedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/nba/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'MLB',
+                    type: 'injury',
+                    headline: 'Mike Trout - Season Ending Surgery',
+                    details: 'Undergoes surgery on torn meniscus. Expected to miss remainder of season.',
+                    player: 'Mike Trout',
+                    team: 'Los Angeles Angels',
+                    publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/mlb/',
+                    source: 'Manual Sample'
+                },
+                {
+                    sport: 'UCL',
+                    type: 'news',
+                    headline: 'Manchester United vs Barcelona Preview',
+                    details: 'Key matchup in knockout rounds. Both teams at full strength.',
+                    team: 'Manchester United',
+                    publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+                    url: 'https://www.espn.com/soccer/',
+                    source: 'Manual Sample'
+                }
+            ];
+            
+            try {
+                const batch = db.batch();
+                
+                for (const item of sampleData) {
+                    const docRef = db.collection('feed').doc();
+                    batch.set(docRef, {
+                        ...item,
+                        publishedAt: firebase.firestore.Timestamp.fromDate(item.publishedAt),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                await batch.commit();
+                statusDiv.textContent = `✅ Successfully added ${sampleData.length} sample feed items!`;
+                statusDiv.style.color = 'var(--accent-green)';
+                
+                // Reload feed items list
+                loadFeedItemsList();
+            } catch (error) {
+                console.error('Error adding sample data:', error);
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                statusDiv.style.color = 'var(--danger)';
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Load 10 Sample Items';
+            }
+        }
+
+        async function clearSampleFeedData() {
+            if (!confirm('Are you sure you want to delete all sample feed data?')) {
+                return;
+            }
+            
+            const statusDiv = document.getElementById('feed-sample-status');
+            statusDiv.textContent = 'Clearing...';
+            
+            try {
+                const snapshot = await db.collection('feed')
+                    .where('source', '==', 'Manual Sample')
+                    .get();
+                
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                statusDiv.textContent = `✅ Deleted ${snapshot.size} sample feed items.`;
+                statusDiv.style.color = 'var(--accent-green)';
+                
+                // Reload feed items list
+                loadFeedItemsList();
+            } catch (error) {
+                console.error('Error clearing sample data:', error);
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                statusDiv.style.color = 'var(--danger)';
+            }
+        }
+
+        // Custom feed form handler
+        const customFeedForm = document.getElementById('custom-feed-form');
+        if (customFeedForm) {
+            customFeedForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const statusDiv = document.getElementById('feed-custom-status');
+                statusDiv.textContent = 'Adding...';
+                
+                const feedItem = {
+                    sport: document.getElementById('feed-sport').value,
+                    type: document.getElementById('feed-type').value,
+                    headline: document.getElementById('feed-headline').value,
+                    details: document.getElementById('feed-details').value || '',
+                    player: document.getElementById('feed-player').value || '',
+                    team: document.getElementById('feed-team').value || '',
+                    url: document.getElementById('feed-url').value || '',
+                    publishedAt: firebase.firestore.Timestamp.now(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    source: 'Manual Custom'
+                };
+                
+                try {
+                    await db.collection('feed').add(feedItem);
+                    statusDiv.textContent = '✅ Feed item added successfully!';
+                    statusDiv.style.color = 'var(--accent-green)';
+                    customFeedForm.reset();
+                    
+                    // Reload feed items list
+                    loadFeedItemsList();
+                } catch (error) {
+                    console.error('Error adding custom item:', error);
+                    statusDiv.textContent = `❌ Error: ${error.message}`;
+                    statusDiv.style.color = 'var(--danger)';
+                }
+            });
+        }
+
+        // Load and display current feed items
+        async function loadFeedItemsList() {
+            const listContainer = document.getElementById('feed-items-list');
+            if (!listContainer) return;
+            
+            try {
+                listContainer.innerHTML = '<p style="color: var(--text-muted);">Loading feed items...</p>';
+                
+                const snapshot = await db.collection('feed')
+                    .orderBy('publishedAt', 'desc')
+                    .limit(50)
+                    .get();
+                
+                if (snapshot.empty) {
+                    listContainer.innerHTML = '<p style="color: var(--text-muted);">No feed items yet.</p>';
+                    return;
+                }
+                
+                listContainer.innerHTML = '';
+                
+                snapshot.docs.forEach(doc => {
+                    const item = doc.data();
+                    const publishedDate = item.publishedAt?.toDate ? 
+                        item.publishedAt.toDate().toLocaleString() : 
+                        'Unknown';
+                    
+                    const div = document.createElement('div');
+                    div.style.cssText = `
+                        background: var(--bg-tertiary);
+                        padding: 1rem;
+                        border-radius: 8px;
+                        border-left: 4px solid var(--accent-green);
+                    `;
+                    
+                    let borderColor = 'var(--accent-green)';
+                    if (item.type === 'injury') borderColor = 'var(--danger)';
+                    if (item.type === 'suspension') borderColor = 'var(--warning)';
+                    if (item.type === 'news') borderColor = 'var(--info)';
+                    div.style.borderLeftColor = borderColor;
+                    
+                    div.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                            <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: rgba(0, 255, 136, 0.2); color: var(--accent-green);">
+                                ${item.sport || 'Sports'}
+                            </span>
+                            <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
+                                ${item.type || 'news'}
+                            </span>
+                        </div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
+                            ${item.headline || 'No headline'}
+                        </div>
+                        ${item.details ? `<div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${item.details}</div>` : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            <span>${publishedDate}</span>
+                            <button onclick="deleteFeedItem('${doc.id}')" class="btn btn-sm btn-outline" style="color: var(--danger); border-color: var(--danger);">Delete</button>
+                        </div>
+                    `;
+                    
+                    listContainer.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading feed items:', error);
+                listContainer.innerHTML = `<p style="color: var(--danger);">Error loading feed items: ${error.message}</p>`;
+            }
+        }
+
+        async function deleteFeedItem(docId) {
+            if (!confirm('Are you sure you want to delete this feed item?')) {
+                return;
+            }
+            
+            try {
+                await db.collection('feed').doc(docId).delete();
+                loadFeedItemsList();
+            } catch (error) {
+                console.error('Error deleting feed item:', error);
+                alert('Failed to delete feed item: ' + error.message);
+            }
+        }
+
+        // Load feed items when tab is opened
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.getAttribute('data-tab') === 'feed-manager') {
+                    loadFeedItemsList();
+                }
+            });
+        });
+
+        // Make functions globally available
+        window.loadSampleFeedData = loadSampleFeedData;
+        window.clearSampleFeedData = clearSampleFeedData;
+        window.deleteFeedItem = deleteFeedItem;
     </script>
 </body>
 </html>
