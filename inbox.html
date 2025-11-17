@@ -97,6 +97,11 @@
                                 <div class="conversation-reply">
                                     <form id="reply-form">
                                         <textarea id="reply-body" rows="3" placeholder="Type your reply..." required></textarea>
+                                        <div class="reply-attachment-row">
+                                            <label for="reply-attachment" class="btn btn-outline btn-sm">📎 Attach Image</label>
+                                            <input type="file" id="reply-attachment" accept="image/*" style="display: none;">
+                                            <span id="reply-attachment-name" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
+                                        </div>
                                         <button type="submit" class="btn btn-primary">Send Reply</button>
                                     </form>
                                 </div>
