@@ -496,9 +496,9 @@
                 <label style="color: var(--text-primary); font-weight: 600;">
                     Tier Level:
                     <select id="tier-select" style="margin-left: 0.5rem; padding: 0.5rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
-                        <option value="starter">Starter (3 picks max)</option>
-                        <option value="pro">Pro (5 picks max)</option>
-                        <option value="vip" selected>VIP (Unlimited)</option>
+                        <option value="starter">Starter (5-7 picks)</option>
+                        <option value="pro">Pro (15-20 picks)</option>
+                        <option value="vip" selected>VIP (30+ picks)</option>
                     </select>
                 </label>
             </div>
@@ -840,8 +840,8 @@
                 
                 // Apply tier limits
                 const tierLimits = {
-                    'starter': 3,
-                    'pro': 5,
+                    'starter': 7,
+                    'pro': 20,
                     'vip': 999
                 };
                 
@@ -1066,7 +1066,7 @@
                             ${hits} - ${misses}
                         </div>
                         <div style="font-size: 1rem; color: var(--text-secondary);">
-                            Hit Rate: <span style="color: ${hitRate >= 60 ? 'var(--success)' : hitRate >= 50 ? 'var(--warning)' : 'var(--danger)'}; font-weight: bold;">${hitRate}%</span>
+                            Hit Rate: <span style="color: ${hitRate >= 77 ? 'var(--success)' : hitRate >= 65 ? 'var(--warning)' : 'var(--danger)'}; font-weight: bold;">${hitRate}%</span>
                         </div>
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
                             (${hits} Hits / ${misses} Misses)
@@ -1155,7 +1155,7 @@
                             </div>
                             <div class="summary-item">
                                 <div class="summary-label">Hit Rate</div>
-                                <div class="summary-value" style="color: ${hitRate >= 60 ? 'var(--success)' : hitRate >= 50 ? 'var(--warning)' : 'var(--danger)'};">${hitRate}%</div>
+                                <div class="summary-value" style="color: ${hitRate >= 77 ? 'var(--success)' : hitRate >= 65 ? 'var(--warning)' : 'var(--danger)'};">${hitRate}%</div>
                             </div>
                             <div class="summary-item">
                                 <div class="summary-label">⚖️ Push</div>
