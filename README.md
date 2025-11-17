@@ -11,7 +11,7 @@ $lip$mith is a static site that provides tiered content access with real-time ch
 - **Tiered Subscriptions**: Starter, Pro, and VIP membership levels
 - **Content Management**: Admin dashboard for creating and managing posts
 - **Tier-Based Access**: Content visibility based on subscription level
-- **Real-Time Chat**: Live chat for Pro and VIP members
+- **Real-Time Chat**: Live chat for Pro and VIP members with image sharing
 - **User Management**: Admin tools for managing user tiers
 - **Secure Authentication**: Firebase-powered login system
 - **File Uploads**: Support for images, videos, and documents
@@ -182,12 +182,35 @@ The site uses a dark theme with money green (#00ff88) as the primary accent colo
                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tier == 'vip');
          allow create: if request.auth != null && 
                          request.resource.data.userId == request.auth.uid;
+         allow delete: if request.auth != null && 
+                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
        }
      }
    }
    ```
 
 2. **Storage Rules**: Implement storage security rules
+   ```javascript
+   rules_version = '2';
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /media/{fileName} {
+         allow read: if request.auth != null;
+         allow write: if request.auth != null && 
+                        request.resource.size < 10 * 1024 * 1024 &&
+                        request.resource.contentType.matches('image/.*|video/.*|application/pdf');
+       }
+       
+       match /chat/{fileName} {
+         allow read: if request.auth != null;
+         allow write: if request.auth != null && 
+                        request.resource.size < 5 * 1024 * 1024 &&
+                        request.resource.contentType.matches('image/.*');
+         allow delete: if request.auth != null;
+       }
+     }
+   }
+   ```
 3. **Environment Variables**: Never commit Firebase config with sensitive data to public repositories
 
 ## 📝 License
