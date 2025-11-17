@@ -23,15 +23,16 @@ if (!firebase.apps || firebase.apps.length === 0) {
   firebase.initializeApp(firebaseConfig);
 }
 
-// Initialize Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+// Initialize Firebase services and expose globally
+// Attach directly to window to avoid top-level const conflicts with app.js
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+window.storage = firebase.storage();
 
-// Expose services globally so other scripts (like app.js) can use them
-window.firebaseAuth = auth;
-window.firebaseDb = db;
-window.firebaseStorage = storage;
+// Maintain backward compatibility with firebase-prefixed names
+window.firebaseAuth = window.auth;
+window.firebaseDb = window.db;
+window.firebaseStorage = window.storage;
 
 // Optional console log for sanity check
 console.log("Firebase initialized for $lip$mith:", firebase.app().name);
