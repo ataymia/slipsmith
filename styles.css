@@ -872,10 +872,30 @@ a:hover {
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-delete-message:hover {
     background: #ff6666;
+}
+
+/* Ensure delete button is visible on mobile */
+@media (max-width: 640px) {
+    .btn-delete-message {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.7rem;
+        min-width: 50px;
+    }
+    
+    .message-header {
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+    
+    .message-time {
+        font-size: 0.7rem;
+    }
 }
 
 /* Admin Page */
