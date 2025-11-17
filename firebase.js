@@ -28,11 +28,13 @@ if (!firebase.apps || firebase.apps.length === 0) {
 window.auth = firebase.auth();
 window.db = firebase.firestore();
 window.storage = firebase.storage();
+window.functions = firebase.functions();
 
 // Maintain backward compatibility with firebase-prefixed names
 window.firebaseAuth = window.auth;
 window.firebaseDb = window.db;
 window.firebaseStorage = window.storage;
+window.firebaseFunctions = window.functions;
 
 // Optional console log for sanity check
 console.log("Firebase initialized for $lip$mith:", firebase.app().name);
