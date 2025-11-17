@@ -526,6 +526,21 @@ function initLoginPage(usernameOnly = false, passwordOnly = false) {
       }
 
       try {
+        // Check if username is already taken (excluding current user)
+        const usernameCheck = await db.collection("users")
+          .where("username", "==", username)
+          .get();
+        
+        const isTaken = usernameCheck.docs.some(doc => doc.id !== currentUser.uid);
+        
+        if (isTaken) {
+          if (usernameError) {
+            usernameError.textContent = "Username is already taken. Please choose another one.";
+            usernameError.style.display = "block";
+          }
+          return;
+        }
+
         await db.collection("users").doc(currentUser.uid).update({
           username: username,
           updatedAt: getServerTimestamp()
@@ -766,11 +781,10 @@ function initPortalPage() {
 function initSlipRequestForPortal() {
   const section = document.getElementById("slip-request-section");
   const info = document.getElementById("slip-request-info");
+  const openButton = document.getElementById("open-slip-request-button");
+  const modal = document.getElementById("slip-request-modal");
+  const closeButton = document.getElementById("close-slip-request-modal");
   const form = document.getElementById("slip-request-form");
-  const sportSelect = document.getElementById("slip-request-sport");
-  const textArea = document.getElementById("slip-request-text");
-  const statusDiv = document.getElementById("slip-request-status");
-  const submitBtn = document.getElementById("slip-request-submit");
 
   if (!section || !currentUser || !currentUserDoc) return;
 
@@ -799,11 +813,9 @@ function initSlipRequestForPortal() {
       if (info) {
         info.textContent = `You have used ${count} of ${maxRequests} slip requests for ${monthKey}.`;
       }
-      if (count >= maxRequests && form) {
-        form.style.display = "none";
-        if (statusDiv) {
-          statusDiv.textContent = "You have reached your slip request limit for this month.";
-        }
+      if (count >= maxRequests && openButton) {
+        openButton.disabled = true;
+        openButton.textContent = "Request Limit Reached";
       }
     })
     .catch((err) => {
@@ -812,6 +824,25 @@ function initSlipRequestForPortal() {
         info.textContent = "Unable to load slip request usage.";
       }
     });
+
+  // Modal handlers
+  if (openButton && modal) {
+    openButton.addEventListener("click", () => {
+      modal.style.display = "flex";
+    });
+  }
+
+  if (closeButton && modal) {
+    closeButton.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
 
   if (!form) return;
 
@@ -854,7 +885,6 @@ function initSlipRequestForPortal() {
       const used = snap.size;
       if (used >= maxRequests) {
         statusDiv.textContent = "You have already used your slip request limit for this month.";
-        document.getElementById("slip-request-form").style.display = "none";
         return;
       }
 
@@ -886,9 +916,16 @@ function initSlipRequestForPortal() {
       if (info) {
         info.textContent = `You have used ${newCount} of ${maxRequests} slip requests for ${monthKey}.`;
       }
-      if (newCount >= maxRequests) {
-        document.getElementById("slip-request-form").style.display = "none";
+      if (newCount >= maxRequests && openButton) {
+        openButton.disabled = true;
+        openButton.textContent = "Request Limit Reached";
       }
+
+      // Close modal after delay
+      setTimeout(() => {
+        document.getElementById("slip-request-modal").style.display = "none";
+        statusDiv.textContent = "";
+      }, 2000);
     } catch (err) {
       console.error("Error submitting slip request:", err);
       statusDiv.textContent = "Failed to submit slip request. Please try again.";
@@ -1147,6 +1184,18 @@ function initAccountPage() {
       }
 
       try {
+        // Check if username is already taken (excluding current user)
+        const usernameCheck = await window.firebaseDb.collection("users")
+          .where("username", "==", newUsername)
+          .get();
+        
+        const isTaken = usernameCheck.docs.some(doc => doc.id !== currentUser.uid);
+        
+        if (isTaken) {
+          if (usernameStatus) usernameStatus.textContent = "Username is already taken. Please choose another one.";
+          return;
+        }
+
         const userDocRef = window.firebaseDb.collection("users").doc(currentUser.uid);
         await userDocRef.update({
           username: newUsername,
@@ -1268,121 +1317,139 @@ function initInboxPage() {
   if (authRequired) authRequired.style.display = "none";
   if (inboxContent) inboxContent.style.display = "block";
 
-  const composeForm = document.getElementById("inbox-compose-form");
-  const toEmailInput = document.getElementById("inbox-to-email");
-  const subjectInput = document.getElementById("inbox-subject");
-  const bodyInput = document.getElementById("inbox-body");
-  const attachmentInput = document.getElementById("inbox-attachment");
-  const sendButton = document.getElementById("inbox-send-button");
-  const statusDiv = document.getElementById("inbox-compose-status");
-  const messagesList = document.getElementById("inbox-messages-list");
+  // Initialize tabs
+  initInboxTabs();
+  
+  // Initialize compose modal
+  initComposeModal();
+  
+  // Initialize conversations list
+  initConversationsList();
+  
+  // Initialize friends functionality
+  initFriendsTab();
+}
 
-  // Load messages
-  if (messagesList) {
-    db.collection("inboxMessages")
-      .where("participants", "array-contains", currentUser.uid)
-      .orderBy("createdAt", "desc")
-      .onSnapshot((snapshot) => {
-        if (snapshot.empty) {
-          messagesList.innerHTML = '<p class="no-content">No messages yet.</p>';
-          return;
-        }
+// ============================================================================
+// INBOX TABS
+// ============================================================================
 
-        messagesList.innerHTML = snapshot.docs.map(doc => {
-          const msg = doc.data();
-          const isFromMe = msg.fromUserId === currentUser.uid;
-          const otherEmail = isFromMe ? msg.toEmail : msg.fromEmail;
-          const direction = isFromMe ? "To" : "From";
-          const createdAt = msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleString() : "Unknown";
+function initInboxTabs() {
+  const tabButtons = document.querySelectorAll('.inbox-tab-btn');
+  const tabContents = document.querySelectorAll('.inbox-tab-content');
+  
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.getAttribute('data-tab');
+      
+      // Remove active class from all tabs
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab
+      btn.classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
+  });
+}
 
-          return `
-            <div class="inbox-message-card">
-              <div class="inbox-message-header">
-                <div>
-                  <strong>${direction}:</strong> ${otherEmail}
-                  ${msg.subject ? `<br><strong>Subject:</strong> ${msg.subject}` : ''}
-                </div>
-                <div class="inbox-message-time">${createdAt}</div>
-              </div>
-              <div class="inbox-message-body">${msg.body || ''}</div>
-              ${msg.attachmentUrl ? `
-                <div class="inbox-message-attachment">
-                  <img src="${msg.attachmentUrl}" alt="Attachment" onclick="window.open('${msg.attachmentUrl}', '_blank')">
-                </div>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
-      }, (error) => {
-        console.error('Error loading inbox messages:', error);
-        messagesList.innerHTML = '<p class="error">Error loading messages.</p>';
-      });
+// ============================================================================
+// COMPOSE MODAL
+// ============================================================================
+
+function initComposeModal() {
+  const newMessageButton = document.getElementById('new-message-button');
+  const composeModal = document.getElementById('compose-modal');
+  const closeComposeModal = document.getElementById('close-compose-modal');
+  const composeForm = document.getElementById('inbox-compose-form');
+  
+  if (newMessageButton && composeModal) {
+    newMessageButton.addEventListener('click', () => {
+      composeModal.style.display = 'flex';
+    });
   }
-
+  
+  if (closeComposeModal && composeModal) {
+    closeComposeModal.addEventListener('click', () => {
+      composeModal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    composeModal.addEventListener('click', (e) => {
+      if (e.target === composeModal) {
+        composeModal.style.display = 'none';
+      }
+    });
+  }
+  
   // Compose form handler
-  if (composeForm && toEmailInput && bodyInput && sendButton && statusDiv) {
-    // Remove existing listener by cloning
+  if (composeForm) {
     const newComposeForm = composeForm.cloneNode(true);
     composeForm.parentNode.replaceChild(newComposeForm, composeForm);
-
-    newComposeForm.addEventListener("submit", async (e) => {
+    
+    newComposeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const statusDiv = document.getElementById("inbox-compose-status");
-      const sendButton = document.getElementById("inbox-send-button");
-      statusDiv.textContent = "";
-
-      const toEmail = document.getElementById("inbox-to-email").value.trim();
-      const subject = document.getElementById("inbox-subject").value.trim();
-      const body = document.getElementById("inbox-body").value.trim();
-      const attachmentInput = document.getElementById("inbox-attachment");
-      const attachmentFile = attachmentInput.files[0];
-
-      if (!toEmail || !body) {
-        statusDiv.textContent = "Please provide recipient email and message.";
+      
+      const statusDiv = document.getElementById('inbox-compose-status');
+      const sendButton = document.getElementById('inbox-send-button');
+      const toRecipient = document.getElementById('inbox-to-recipient').value.trim();
+      const subject = document.getElementById('inbox-subject').value.trim();
+      const body = document.getElementById('inbox-body').value.trim();
+      const attachmentInput = document.getElementById('inbox-attachment');
+      const attachmentFile = attachmentInput ? attachmentInput.files[0] : null;
+      
+      if (!toRecipient || !body) {
+        statusDiv.textContent = 'Please provide recipient and message.';
         return;
       }
-
+      
       try {
         sendButton.disabled = true;
-        sendButton.textContent = "Sending...";
-
-        // Look up recipient
-        const recipientSnap = await db.collection("users")
-          .where("email", "==", toEmail)
-          .limit(1)
-          .get();
-
+        sendButton.textContent = 'Sending...';
+        statusDiv.textContent = '';
+        
+        // Look up recipient by username or email
+        let recipientSnap;
+        if (toRecipient.includes('@')) {
+          recipientSnap = await db.collection('users').where('email', '==', toRecipient).limit(1).get();
+        } else {
+          recipientSnap = await db.collection('users').where('username', '==', toRecipient).limit(1).get();
+        }
+        
         if (recipientSnap.empty) {
-          statusDiv.textContent = "Recipient not found. Please check the email address.";
+          statusDiv.textContent = 'Recipient not found. Please check the username or email.';
           sendButton.disabled = false;
-          sendButton.textContent = "Send";
+          sendButton.textContent = 'Send';
           return;
         }
-
+        
         const recipientDoc = recipientSnap.docs[0];
+        const recipientData = recipientDoc.data();
         const recipientUid = recipientDoc.id;
-
+        
         let attachmentUrl = null;
         let attachmentPath = null;
-
+        
         // Upload attachment if provided
-        if (attachmentFile) {
+        if (attachmentFile && storage) {
           const timestamp = Date.now();
           const fileName = `${timestamp}_${attachmentFile.name}`;
           const storagePath = `inboxAttachments/${currentUser.uid}/${fileName}`;
           const storageRef = storage.ref(storagePath);
-
+          
           const snapshot = await storageRef.put(attachmentFile);
           attachmentUrl = await snapshot.ref.getDownloadURL();
           attachmentPath = storagePath;
         }
-
+        
         // Create inbox message
-        await db.collection("inboxMessages").add({
+        await db.collection('inboxMessages').add({
           fromUserId: currentUser.uid,
-          fromEmail: currentUser.email || currentUserDoc.email || "",
+          fromEmail: currentUser.email || currentUserDoc.email || '',
+          fromUsername: currentUserDoc.username || '',
           toUserId: recipientUid,
-          toEmail: toEmail,
+          toEmail: recipientData.email || '',
+          toUsername: recipientData.username || '',
           subject: subject || null,
           body: body,
           attachmentUrl: attachmentUrl,
@@ -1392,22 +1459,469 @@ function initInboxPage() {
           createdAt: getServerTimestamp(),
           updatedAt: getServerTimestamp()
         });
-
-        statusDiv.textContent = "Message sent successfully!";
-        document.getElementById("inbox-to-email").value = "";
-        document.getElementById("inbox-subject").value = "";
-        document.getElementById("inbox-body").value = "";
-        document.getElementById("inbox-attachment").value = "";
+        
+        statusDiv.textContent = 'Message sent successfully!';
+        document.getElementById('inbox-to-recipient').value = '';
+        document.getElementById('inbox-subject').value = '';
+        document.getElementById('inbox-body').value = '';
+        if (attachmentInput) attachmentInput.value = '';
+        
+        // Close modal after a delay
+        setTimeout(() => {
+          document.getElementById('compose-modal').style.display = 'none';
+          statusDiv.textContent = '';
+        }, 2000);
       } catch (error) {
-        console.error("Error sending message:", error);
-        statusDiv.textContent = "Failed to send message. Please try again.";
+        console.error('Error sending message:', error);
+        statusDiv.textContent = 'Failed to send message. Please try again.';
       } finally {
         sendButton.disabled = false;
-        sendButton.textContent = "Send";
+        sendButton.textContent = 'Send';
       }
     });
   }
 }
+
+// ============================================================================
+// CONVERSATIONS LIST
+// ============================================================================
+
+function initConversationsList() {
+  const conversationsList = document.getElementById('inbox-conversations-list');
+  const conversationView = document.getElementById('conversation-view');
+  const backButton = document.getElementById('back-to-conversations');
+  
+  if (!conversationsList || !currentUser) return;
+  
+  // Listen for messages
+  db.collection('inboxMessages')
+    .where('participants', 'array-contains', currentUser.uid)
+    .orderBy('createdAt', 'desc')
+    .onSnapshot((snapshot) => {
+      if (snapshot.empty) {
+        conversationsList.innerHTML = '<p class="no-content">No messages yet. Click "New Message" to start a conversation.</p>';
+        return;
+      }
+      
+      // Group messages by conversation
+      const conversations = new Map();
+      
+      snapshot.docs.forEach(doc => {
+        const msg = doc.data();
+        const otherUserId = msg.fromUserId === currentUser.uid ? msg.toUserId : msg.fromUserId;
+        
+        if (!conversations.has(otherUserId)) {
+          conversations.set(otherUserId, {
+            userId: otherUserId,
+            userName: msg.fromUserId === currentUser.uid ? 
+              (msg.toUsername || msg.toEmail) : 
+              (msg.fromUsername || msg.fromEmail),
+            lastMessage: msg.body,
+            lastMessageTime: msg.createdAt,
+            messages: []
+          });
+        }
+        
+        conversations.get(otherUserId).messages.push({
+          id: doc.id,
+          ...msg
+        });
+      });
+      
+      // Render conversations
+      conversationsList.innerHTML = '';
+      conversations.forEach((conv, userId) => {
+        const div = document.createElement('div');
+        div.className = 'conversation-item';
+        div.onclick = () => openConversation(userId, conv.userName, conv.messages);
+        
+        const time = conv.lastMessageTime?.toDate ? 
+          conv.lastMessageTime.toDate().toLocaleString() : 
+          'Unknown';
+        
+        div.innerHTML = `
+          <div class="conversation-item-info">
+            <div class="conversation-item-name">${conv.userName}</div>
+            <div class="conversation-item-preview">${conv.lastMessage.substring(0, 100)}${conv.lastMessage.length > 100 ? '...' : ''}</div>
+          </div>
+          <div class="conversation-item-time">${time}</div>
+        `;
+        
+        conversationsList.appendChild(div);
+      });
+    });
+  
+  // Back button handler
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      conversationView.style.display = 'none';
+      document.querySelector('.inbox-conversations').style.display = 'block';
+    });
+  }
+}
+
+function openConversation(userId, userName, messages) {
+  const conversationView = document.getElementById('conversation-view');
+  const conversationWith = document.getElementById('conversation-with');
+  const conversationMessages = document.getElementById('conversation-messages');
+  const conversationsSection = document.querySelector('.inbox-conversations');
+  
+  if (!conversationView) return;
+  
+  // Hide conversations list, show conversation view
+  conversationsSection.style.display = 'none';
+  conversationView.style.display = 'block';
+  
+  // Set conversation title
+  conversationWith.textContent = `Conversation with ${userName}`;
+  
+  // Render messages
+  messages.sort((a, b) => {
+    const aTime = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+    const bTime = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+    return aTime - bTime;
+  });
+  
+  conversationMessages.innerHTML = messages.map(msg => {
+    const isSent = msg.fromUserId === currentUser.uid;
+    const time = msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleString() : 'Unknown';
+    
+    return `
+      <div class="conversation-message ${isSent ? 'sent' : ''}">
+        <div class="conversation-message-header">
+          <span class="conversation-message-sender">${isSent ? 'You' : userName}</span>
+          <span class="conversation-message-time">${time}</span>
+        </div>
+        ${msg.subject ? `<div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.3rem;">Re: ${msg.subject}</div>` : ''}
+        <div class="conversation-message-body">${msg.body}</div>
+        ${msg.attachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${msg.attachmentUrl}" alt="Attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${msg.attachmentUrl}', '_blank')"></div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  // Scroll to bottom
+  conversationMessages.scrollTop = conversationMessages.scrollHeight;
+  
+  // Initialize reply form
+  initReplyForm(userId, userName);
+}
+
+function initReplyForm(recipientUserId, recipientName) {
+  const replyForm = document.getElementById('reply-form');
+  
+  if (!replyForm) return;
+  
+  const newReplyForm = replyForm.cloneNode(true);
+  replyForm.parentNode.replaceChild(newReplyForm, replyForm);
+  
+  newReplyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const replyBody = document.getElementById('reply-body').value.trim();
+    if (!replyBody) return;
+    
+    try {
+      // Get recipient data
+      const recipientDoc = await db.collection('users').doc(recipientUserId).get();
+      const recipientData = recipientDoc.data();
+      
+      await db.collection('inboxMessages').add({
+        fromUserId: currentUser.uid,
+        fromEmail: currentUser.email || currentUserDoc.email || '',
+        fromUsername: currentUserDoc.username || '',
+        toUserId: recipientUserId,
+        toEmail: recipientData.email || '',
+        toUsername: recipientData.username || '',
+        subject: null,
+        body: replyBody,
+        attachmentUrl: null,
+        attachmentPath: null,
+        participants: [currentUser.uid, recipientUserId],
+        readBy: [currentUser.uid],
+        createdAt: getServerTimestamp(),
+        updatedAt: getServerTimestamp()
+      });
+      
+      document.getElementById('reply-body').value = '';
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('Failed to send reply. Please try again.');
+    }
+  });
+}
+
+// ============================================================================
+// FRIENDS TAB
+// ============================================================================
+
+function initFriendsTab() {
+  initAddFriendModal();
+  loadFriends();
+  loadFriendRequests();
+}
+
+function initAddFriendModal() {
+  const addFriendButton = document.getElementById('add-friend-button');
+  const addFriendModal = document.getElementById('add-friend-modal');
+  const closeAddFriendModal = document.getElementById('close-add-friend-modal');
+  const addFriendForm = document.getElementById('add-friend-form');
+  
+  if (addFriendButton && addFriendModal) {
+    addFriendButton.addEventListener('click', () => {
+      addFriendModal.style.display = 'flex';
+    });
+  }
+  
+  if (closeAddFriendModal && addFriendModal) {
+    closeAddFriendModal.addEventListener('click', () => {
+      addFriendModal.style.display = 'none';
+    });
+    
+    addFriendModal.addEventListener('click', (e) => {
+      if (e.target === addFriendModal) {
+        addFriendModal.style.display = 'none';
+      }
+    });
+  }
+  
+  if (addFriendForm) {
+    const newAddFriendForm = addFriendForm.cloneNode(true);
+    addFriendForm.parentNode.replaceChild(newAddFriendForm, addFriendForm);
+    
+    newAddFriendForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const statusDiv = document.getElementById('add-friend-status');
+      const searchInput = document.getElementById('friend-search');
+      const searchValue = searchInput.value.trim();
+      
+      if (!searchValue) {
+        statusDiv.textContent = 'Please enter a username or email.';
+        return;
+      }
+      
+      try {
+        statusDiv.textContent = 'Searching...';
+        
+        // Look up user by username or email
+        let userSnap;
+        if (searchValue.includes('@')) {
+          userSnap = await db.collection('users').where('email', '==', searchValue).limit(1).get();
+        } else {
+          userSnap = await db.collection('users').where('username', '==', searchValue).limit(1).get();
+        }
+        
+        if (userSnap.empty) {
+          statusDiv.textContent = 'User not found. Please check the username or email.';
+          return;
+        }
+        
+        const friendDoc = userSnap.docs[0];
+        const friendId = friendDoc.id;
+        
+        if (friendId === currentUser.uid) {
+          statusDiv.textContent = 'You cannot add yourself as a friend.';
+          return;
+        }
+        
+        // Check if already friends
+        const friendshipSnap = await db.collection('friendships')
+          .where('users', 'array-contains', currentUser.uid)
+          .get();
+        
+        const alreadyFriends = friendshipSnap.docs.some(doc => {
+          const data = doc.data();
+          return data.users.includes(friendId);
+        });
+        
+        if (alreadyFriends) {
+          statusDiv.textContent = 'You are already friends with this user.';
+          return;
+        }
+        
+        // Check if friend request already exists
+        const requestSnap = await db.collection('friendRequests')
+          .where('fromUserId', '==', currentUser.uid)
+          .where('toUserId', '==', friendId)
+          .where('status', '==', 'pending')
+          .get();
+        
+        if (!requestSnap.empty) {
+          statusDiv.textContent = 'Friend request already sent.';
+          return;
+        }
+        
+        // Create friend request
+        await db.collection('friendRequests').add({
+          fromUserId: currentUser.uid,
+          fromUsername: currentUserDoc.username || currentUser.email,
+          toUserId: friendId,
+          toUsername: friendDoc.data().username || friendDoc.data().email,
+          status: 'pending',
+          createdAt: getServerTimestamp()
+        });
+        
+        statusDiv.textContent = 'Friend request sent!';
+        searchInput.value = '';
+        
+        setTimeout(() => {
+          document.getElementById('add-friend-modal').style.display = 'none';
+          statusDiv.textContent = '';
+        }, 2000);
+      } catch (error) {
+        console.error('Error sending friend request:', error);
+        statusDiv.textContent = 'Failed to send friend request. Please try again.';
+      }
+    });
+  }
+}
+
+function loadFriends() {
+  const friendsList = document.getElementById('friends-list');
+  
+  if (!friendsList || !currentUser) return;
+  
+  db.collection('friendships')
+    .where('users', 'array-contains', currentUser.uid)
+    .onSnapshot((snapshot) => {
+      if (snapshot.empty) {
+        friendsList.innerHTML = '<p class="no-content">No friends yet. Click "Add Friend" to connect with other users.</p>';
+        return;
+      }
+      
+      friendsList.innerHTML = '';
+      
+      snapshot.docs.forEach(async (doc) => {
+        const data = doc.data();
+        const friendId = data.users.find(id => id !== currentUser.uid);
+        
+        // Get friend data
+        const friendDoc = await db.collection('users').doc(friendId).get();
+        const friendData = friendDoc.data();
+        
+        const div = document.createElement('div');
+        div.className = 'friend-item';
+        
+        const friendName = friendData.username || friendData.email || 'Unknown';
+        const initial = friendName.charAt(0).toUpperCase();
+        
+        // Check online status (simplified - would need real presence system)
+        const isOnline = false; // Placeholder
+        
+        div.innerHTML = `
+          <div class="friend-info">
+            <div class="friend-avatar">${initial}</div>
+            <div class="friend-details">
+              <div class="friend-name">${friendName}</div>
+              <div class="friend-status">
+                <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}"></span>
+                ${isOnline ? 'Online' : 'Offline'}
+              </div>
+            </div>
+          </div>
+          <div class="friend-actions">
+            <button class="btn-friend-message" onclick="window.messageUser('${friendId}', '${friendName}')">Message</button>
+            <button class="btn-friend-remove" onclick="window.removeFriend('${doc.id}')">Remove</button>
+          </div>
+        `;
+        
+        friendsList.appendChild(div);
+      });
+    });
+}
+
+function loadFriendRequests() {
+  const requestsList = document.getElementById('friend-requests-list');
+  
+  if (!requestsList || !currentUser) return;
+  
+  db.collection('friendRequests')
+    .where('toUserId', '==', currentUser.uid)
+    .where('status', '==', 'pending')
+    .onSnapshot((snapshot) => {
+      if (snapshot.empty) {
+        requestsList.innerHTML = '<p class="no-content">No pending friend requests.</p>';
+        return;
+      }
+      
+      requestsList.innerHTML = '';
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        
+        const div = document.createElement('div');
+        div.className = 'friend-request-item';
+        
+        const initial = data.fromUsername.charAt(0).toUpperCase();
+        
+        div.innerHTML = `
+          <div class="friend-info">
+            <div class="friend-avatar">${initial}</div>
+            <div class="friend-details">
+              <div class="friend-name">${data.fromUsername}</div>
+              <div class="friend-status">wants to be friends</div>
+            </div>
+          </div>
+          <div class="friend-actions">
+            <button class="btn-accept-friend" onclick="window.acceptFriendRequest('${doc.id}', '${data.fromUserId}')">Accept</button>
+            <button class="btn-decline-friend" onclick="window.declineFriendRequest('${doc.id}')">Decline</button>
+          </div>
+        `;
+        
+        requestsList.appendChild(div);
+      });
+    });
+}
+
+// Global friend functions
+window.messageUser = function(userId, userName) {
+  // Switch to messages tab and open compose modal with user pre-filled
+  document.querySelector('.inbox-tab-btn[data-tab="messages"]').click();
+  document.getElementById('new-message-button').click();
+  document.getElementById('inbox-to-recipient').value = userName;
+};
+
+window.removeFriend = async function(friendshipId) {
+  if (!confirm('Are you sure you want to remove this friend?')) return;
+  
+  try {
+    await db.collection('friendships').doc(friendshipId).delete();
+  } catch (error) {
+    console.error('Error removing friend:', error);
+    alert('Failed to remove friend. Please try again.');
+  }
+};
+
+window.acceptFriendRequest = async function(requestId, fromUserId) {
+  try {
+    // Create friendship
+    await db.collection('friendships').add({
+      users: [currentUser.uid, fromUserId],
+      createdAt: getServerTimestamp()
+    });
+    
+    // Update request status
+    await db.collection('friendRequests').doc(requestId).update({
+      status: 'accepted',
+      updatedAt: getServerTimestamp()
+    });
+  } catch (error) {
+    console.error('Error accepting friend request:', error);
+    alert('Failed to accept friend request. Please try again.');
+  }
+};
+
+window.declineFriendRequest = async function(requestId) {
+  try {
+    await db.collection('friendRequests').doc(requestId).update({
+      status: 'declined',
+      updatedAt: getServerTimestamp()
+    });
+  } catch (error) {
+    console.error('Error declining friend request:', error);
+    alert('Failed to decline friend request. Please try again.');
+  }
+};
 
 // ============================================================================
 // ADMIN USER MANAGER

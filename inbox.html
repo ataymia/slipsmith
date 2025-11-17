@@ -34,34 +34,117 @@
                     <div class="inbox-card">
                         <h1>Your Inbox</h1>
 
-                        <section class="inbox-compose">
-                            <h2>Compose message</h2>
-                            <form id="inbox-compose-form">
-                                <div class="form-row">
-                                    <label for="inbox-to-email">To (email)</label>
-                                    <input type="email" id="inbox-to-email" placeholder="Recipient email" required>
-                                </div>
-                                <div class="form-row">
-                                    <label for="inbox-subject">Subject</label>
-                                    <input type="text" id="inbox-subject" placeholder="Subject (optional)">
-                                </div>
-                                <div class="form-row">
-                                    <label for="inbox-body">Message</label>
-                                    <textarea id="inbox-body" rows="4" required></textarea>
-                                </div>
-                                <div class="form-row">
-                                    <label for="inbox-attachment">Attachment (optional)</label>
-                                    <input type="file" id="inbox-attachment" accept="image/*">
-                                </div>
-                                <button type="submit" id="inbox-send-button">Send</button>
-                                <div id="inbox-compose-status" class="inbox-status"></div>
-                            </form>
-                        </section>
+                        <!-- Inbox Navigation Tabs -->
+                        <div class="inbox-tabs">
+                            <button class="inbox-tab-btn active" data-tab="messages">Messages</button>
+                            <button class="inbox-tab-btn" data-tab="friends">Friends</button>
+                        </div>
 
-                        <section class="inbox-messages">
-                            <h2>Messages</h2>
-                            <div id="inbox-messages-list"></div>
-                        </section>
+                        <!-- Messages Tab -->
+                        <div id="messages-tab" class="inbox-tab-content active">
+                            <div class="inbox-header-actions">
+                                <button id="new-message-button" class="btn btn-primary">
+                                    <span>✉️</span> New Message
+                                </button>
+                            </div>
+
+                            <!-- Message Compose Modal (Hidden by default) -->
+                            <div id="compose-modal" class="modal" style="display: none;">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h2>New Message</h2>
+                                        <button class="modal-close" id="close-compose-modal">&times;</button>
+                                    </div>
+                                    <form id="inbox-compose-form">
+                                        <div class="form-row">
+                                            <label for="inbox-to-recipient">To (username or email)</label>
+                                            <input type="text" id="inbox-to-recipient" placeholder="Enter username or email" required>
+                                            <small class="form-hint">You can send messages to users by their username or email</small>
+                                        </div>
+                                        <div class="form-row">
+                                            <label for="inbox-subject">Subject</label>
+                                            <input type="text" id="inbox-subject" placeholder="Subject (optional)">
+                                        </div>
+                                        <div class="form-row">
+                                            <label for="inbox-body">Message</label>
+                                            <textarea id="inbox-body" rows="4" required></textarea>
+                                        </div>
+                                        <div class="form-row">
+                                            <label for="inbox-attachment">Attachment (optional)</label>
+                                            <input type="file" id="inbox-attachment" accept="image/*">
+                                        </div>
+                                        <button type="submit" id="inbox-send-button" class="btn btn-primary">Send</button>
+                                        <div id="inbox-compose-status" class="inbox-status"></div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Conversations List -->
+                            <section class="inbox-conversations">
+                                <h2>Recent Conversations</h2>
+                                <div id="inbox-conversations-list">
+                                    <p class="no-content">No messages yet. Click "New Message" to start a conversation.</p>
+                                </div>
+                            </section>
+
+                            <!-- Conversation View (Hidden by default) -->
+                            <section id="conversation-view" class="conversation-view" style="display: none;">
+                                <div class="conversation-header">
+                                    <button id="back-to-conversations" class="btn btn-outline btn-sm">← Back</button>
+                                    <h3 id="conversation-with"></h3>
+                                </div>
+                                <div id="conversation-messages" class="conversation-messages"></div>
+                                <div class="conversation-reply">
+                                    <form id="reply-form">
+                                        <textarea id="reply-body" rows="3" placeholder="Type your reply..." required></textarea>
+                                        <button type="submit" class="btn btn-primary">Send Reply</button>
+                                    </form>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Friends Tab -->
+                        <div id="friends-tab" class="inbox-tab-content" style="display: none;">
+                            <div class="inbox-header-actions">
+                                <button id="add-friend-button" class="btn btn-primary">
+                                    <span>👥</span> Add Friend
+                                </button>
+                            </div>
+
+                            <!-- Add Friend Modal -->
+                            <div id="add-friend-modal" class="modal" style="display: none;">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h2>Add Friend</h2>
+                                        <button class="modal-close" id="close-add-friend-modal">&times;</button>
+                                    </div>
+                                    <form id="add-friend-form">
+                                        <div class="form-row">
+                                            <label for="friend-search">Search by username or email</label>
+                                            <input type="text" id="friend-search" placeholder="Enter username or email" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Send Friend Request</button>
+                                        <div id="add-friend-status" class="inbox-status"></div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Friends List -->
+                            <section class="friends-section">
+                                <h2>Your Friends</h2>
+                                <div id="friends-list">
+                                    <p class="no-content">No friends yet. Click "Add Friend" to connect with other users.</p>
+                                </div>
+                            </section>
+
+                            <!-- Friend Requests -->
+                            <section class="friend-requests-section">
+                                <h2>Friend Requests</h2>
+                                <div id="friend-requests-list">
+                                    <p class="no-content">No pending friend requests.</p>
+                                </div>
+                            </section>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -74,16 +157,14 @@
         </div>
     </footer>
 
-    <!-- Firebase SDKs (v9 compat) -->
+    <!-- Firebase SDK v9 (Compat mode) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 
-    <!-- My Firebase initialization -->
     <script src="firebase.js"></script>
-
-    <!-- Main app logic -->
     <script src="app.js"></script>
 </body>
 </html>

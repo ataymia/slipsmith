@@ -1205,11 +1205,112 @@ a:hover {
     margin-top: 2rem;
 }
 
-.inbox-compose {
-    background: var(--bg-tertiary);
-    padding: 2rem;
-    border-radius: 8px;
+/* Inbox Tabs */
+.inbox-tabs {
+    display: flex;
+    gap: 1rem;
     margin-bottom: 2rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.inbox-tab-btn {
+    padding: 0.9rem 2rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.inbox-tab-btn:hover {
+    color: var(--accent-green);
+}
+
+.inbox-tab-btn.active {
+    color: var(--accent-green);
+    border-bottom-color: var(--accent-green);
+}
+
+.inbox-tab-content {
+    display: none;
+}
+
+.inbox-tab-content.active {
+    display: block;
+}
+
+/* Inbox Header Actions */
+.inbox-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 2px solid var(--accent-green);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 255, 136, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modal-header h2 {
+    color: var(--accent-green);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.modal-content form {
+    padding: 1.5rem;
 }
 
 .form-row {
@@ -1227,7 +1328,7 @@ a:hover {
 .form-row textarea {
     width: 100%;
     padding: 0.75rem;
-    background: var(--bg-secondary);
+    background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-primary);
@@ -1268,6 +1369,304 @@ a:hover {
     color: var(--text-primary);
 }
 
+/* Conversations List */
+.inbox-conversations {
+    margin-top: 1rem;
+}
+
+#inbox-conversations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.conversation-item {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.conversation-item:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+    transform: translateY(-2px);
+}
+
+.conversation-item-info {
+    flex: 1;
+}
+
+.conversation-item-name {
+    color: var(--accent-green);
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.conversation-item-preview {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 500px;
+}
+
+.conversation-item-time {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.unread-badge {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+/* Conversation View */
+.conversation-view {
+    margin-top: 2rem;
+}
+
+.conversation-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.conversation-header h3 {
+    color: var(--accent-green);
+    margin: 0;
+}
+
+.conversation-messages {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.conversation-message {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--border-color);
+}
+
+.conversation-message.sent {
+    border-left-color: var(--accent-green);
+    background: var(--bg-primary);
+}
+
+.conversation-message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.conversation-message-sender {
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.conversation-message-time {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.conversation-message-body {
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.conversation-reply {
+    margin-top: 1rem;
+}
+
+.conversation-reply form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.conversation-reply textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.conversation-reply textarea:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+}
+
+/* Friends Section */
+.friends-section,
+.friend-requests-section {
+    margin-top: 2rem;
+}
+
+#friends-list,
+#friend-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.friend-item,
+.friend-request-item {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.friend-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.friend-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--bg-primary);
+    font-weight: bold;
+}
+
+.friend-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-name {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.friend-status {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-online {
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+}
+
+.status-offline {
+    background: var(--text-muted);
+}
+
+.friend-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-friend-message,
+.btn-friend-remove {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.btn-friend-message {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+}
+
+.btn-friend-message:hover {
+    background: var(--accent-green-light);
+}
+
+.btn-friend-remove {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-friend-remove:hover {
+    background: #ff6666;
+}
+
+.btn-accept-friend,
+.btn-decline-friend {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.btn-accept-friend {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+}
+
+.btn-accept-friend:hover {
+    background: var(--accent-green-light);
+}
+
+.btn-decline-friend {
+    background: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.btn-decline-friend:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Legacy styles for backward compatibility */
 .inbox-messages {
     margin-top: 2rem;
 }
