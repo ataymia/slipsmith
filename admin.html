@@ -36,6 +36,7 @@
                     <div class="admin-tabs">
                         <button class="tab-btn active" data-tab="posts">Manage Posts</button>
                         <button class="tab-btn" data-tab="users">Manage Users</button>
+                        <button class="tab-btn" data-tab="user-manager">Admin User Manager</button>
                     </div>
 
                     <!-- Posts Management Tab -->
@@ -117,6 +118,65 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Admin User Manager Tab -->
+                    <div id="user-manager-tab" class="tab-content">
+                        <div class="admin-card">
+                            <h2>Admin User Manager</h2>
+                            <p>Use this form to create or update user accounts.</p>
+
+                            <form id="admin-user-form" class="admin-form">
+                                <div class="form-group">
+                                    <label for="admin-user-uid">User UID (leave blank to create new)</label>
+                                    <input type="text" id="admin-user-uid" placeholder="Existing user UID (optional)">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="admin-user-email">Email *</label>
+                                    <input type="email" id="admin-user-email" required placeholder="user@example.com">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="admin-user-username">Username (optional)</label>
+                                    <input type="text" id="admin-user-username" placeholder="Username">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="admin-user-role">Role *</label>
+                                    <select id="admin-user-role" required>
+                                        <option value="user">User</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="admin-user-tier">Tier *</label>
+                                    <select id="admin-user-tier" required>
+                                        <option value="starter">Starter</option>
+                                        <option value="pro">Pro</option>
+                                        <option value="vip">VIP</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="admin-user-must-change-password">
+                                        Require password change on first login
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="admin-user-temp-password">Temporary password (leave blank to auto-generate)</label>
+                                    <input type="text" id="admin-user-temp-password" placeholder="Leave blank for auto-generation">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="admin-user-submit-button">Create / Update User</button>
+
+                                <div id="admin-user-status" class="success-message" style="display: none;"></div>
+                                <div id="admin-user-temp-password-display" class="success-message" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0, 255, 136, 0.1); border: 1px solid var(--primary); border-radius: 4px;"></div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -133,6 +193,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 
     <!-- My Firebase initialization -->
     <script src="firebase.js"></script>
@@ -165,7 +226,51 @@
         });
 
         function showAuthRequired() {
-            document.getElementById('auth-required').style.display = 'block';
+            const authRequiredDiv = document.getElementById('auth-required');
+            
+            // If user is logged in but not admin, show detailed message
+            if (currentUser && currentUserData) {
+                const userEmail = currentUserData.email || currentUser.email || 'Unknown';
+                const userRole = currentUserData.role || 'none';
+                
+                authRequiredDiv.innerHTML = `
+                    <h2>🚫 Admin Access Denied</h2>
+                    <p><strong>You are logged in as:</strong> ${userEmail}</p>
+                    <p><strong>Your current role:</strong> ${userRole}</p>
+                    <p class="error-message">This account does not have admin privileges.</p>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px; text-align: left;">
+                        <h3 style="margin-top: 0;">To gain admin access:</h3>
+                        <ol style="margin: 0.5rem 0;">
+                            <li>Contact your site administrator</li>
+                            <li>Or update your user document in Firestore:
+                                <ul style="margin-top: 0.5rem;">
+                                    <li>Go to Firebase Console → Firestore Database</li>
+                                    <li>Navigate to collection: <code>users</code></li>
+                                    <li>Find document with ID: <code>${currentUser.uid}</code></li>
+                                    <li>Add or update field: <code>role</code> = <code>"admin"</code></li>
+                                    <li>Refresh this page</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                        <a href="portal.html" class="btn btn-primary">Go to Portal</a>
+                        <button id="logout-btn-denied" class="btn btn-outline">Log Out</button>
+                    </div>
+                `;
+                
+                // Add logout handler for the new button
+                document.getElementById('logout-btn-denied')?.addEventListener('click', async () => {
+                    try {
+                        await logoutUser();
+                        window.location.href = 'login.html';
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                });
+            }
+            
+            authRequiredDiv.style.display = 'block';
             document.getElementById('admin-content').style.display = 'none';
         }
 

@@ -10,9 +10,13 @@
 const auth = window.auth || window.firebaseAuth;
 const db = window.db || window.firebaseDb;
 const storage = window.storage || window.firebaseStorage;
+const functions = window.functions || window.firebaseFunctions;
 
 if (!auth || !db) {
   console.error("Firebase services not found. Make sure firebase.js is loaded before app.js.");
+}
+if (!functions) {
+  console.warn("Firebase Functions not found. Admin user manager will not work.");
 }
 
 // ============================================================================
@@ -342,11 +346,7 @@ auth.onAuthStateChanged(async (user) => {
     logDebug('routing decision', { note: `needsPasswordChange=${needsPasswordChange} hasUsername=${hasUsername} page=${page}` });
 
     if (page === "admin") {
-      if (currentUserDoc.role !== "admin") {
-        console.log('[auth routing] non-admin user tried to access admin -> redirect to portal');
-        window.location.href = "portal.html";
-        return;
-      }
+      // Don't redirect - let admin.html handle showing appropriate error message
       initAdminPage();
     } else if (page === "portal") {
       initPortalPage();
@@ -1018,6 +1018,143 @@ function initAccountPage() {
 }
 
 // ============================================================================
+// ADMIN USER MANAGER
+// ============================================================================
+
+function initAdminUserManager() {
+  const form = document.getElementById("admin-user-form");
+  const statusDiv = document.getElementById("admin-user-status");
+  const tempPwDisplay = document.getElementById("admin-user-temp-password-display");
+
+  if (!form) {
+    console.log("Admin user form not found - skipping initialization");
+    return;
+  }
+
+  if (!functions) {
+    console.error("Firebase Functions not available - admin user manager cannot work");
+    if (statusDiv) {
+      statusDiv.textContent = "Error: Firebase Functions not initialized. Check console.";
+      statusDiv.style.display = "block";
+    }
+    return;
+  }
+
+  const uidInput = document.getElementById("admin-user-uid");
+  const emailInput = document.getElementById("admin-user-email");
+  const usernameInput = document.getElementById("admin-user-username");
+  const roleSelect = document.getElementById("admin-user-role");
+  const tierSelect = document.getElementById("admin-user-tier");
+  const mustChangeCheckbox = document.getElementById("admin-user-must-change-password");
+  const tempPasswordInput = document.getElementById("admin-user-temp-password");
+  const submitBtn = document.getElementById("admin-user-submit-button");
+
+  const upsertFn = functions.httpsCallable("adminUpsertUser");
+
+  function setLoading(isLoading) {
+    if (!submitBtn) return;
+    submitBtn.disabled = isLoading;
+    submitBtn.textContent = isLoading ? "Working..." : "Create / Update User";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (statusDiv) {
+      statusDiv.textContent = "";
+      statusDiv.style.display = "none";
+    }
+    if (tempPwDisplay) {
+      tempPwDisplay.textContent = "";
+      tempPwDisplay.style.display = "none";
+    }
+
+    const uid = uidInput && uidInput.value.trim() ? uidInput.value.trim() : undefined;
+    const email = emailInput ? emailInput.value.trim() : "";
+    const username = usernameInput ? usernameInput.value.trim() : "";
+    const role = roleSelect ? roleSelect.value : "user";
+    const tier = tierSelect ? tierSelect.value : "starter";
+    const mustChangePassword = mustChangeCheckbox ? mustChangeCheckbox.checked : false;
+    const tempPasswordRaw = tempPasswordInput ? tempPasswordInput.value.trim() : "";
+    const tempPassword = tempPasswordRaw === "" ? null : tempPasswordRaw;
+
+    if (!email) {
+      if (statusDiv) {
+        statusDiv.textContent = "Email is required.";
+        statusDiv.className = "error-message";
+        statusDiv.style.display = "block";
+      }
+      return;
+    }
+
+    if (!role || !tier) {
+      if (statusDiv) {
+        statusDiv.textContent = "Role and tier are required.";
+        statusDiv.className = "error-message";
+        statusDiv.style.display = "block";
+      }
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        email,
+        role,
+        tier,
+        username: username || null,
+        mustChangePassword,
+        tempPassword
+      };
+
+      if (uid) {
+        payload.uid = uid;
+      }
+
+      console.log("Calling adminUpsertUser with payload:", payload);
+      const result = await upsertFn(payload);
+      const data = result.data || {};
+
+      console.log("adminUpsertUser result:", data);
+
+      if (statusDiv) {
+        statusDiv.className = "success-message";
+        statusDiv.textContent = `User ${data.mode === "created" ? "created" : "updated"} successfully (uid: ${data.uid}).`;
+        statusDiv.style.display = "block";
+      }
+
+      if (data.tempPassword && tempPwDisplay) {
+        tempPwDisplay.innerHTML = `<strong>⚠️ Temporary password:</strong> <code style="font-size: 1.1em; padding: 0.2rem 0.5rem; background: rgba(0,0,0,0.3); border-radius: 3px;">${data.tempPassword}</code><br><small>Please save this password - it will not be shown again!</small>`;
+        tempPwDisplay.style.display = "block";
+      }
+
+      // If we created a new user, populate the UID field
+      if (!uid && uidInput && data.uid) {
+        uidInput.value = data.uid;
+      }
+
+      // Reload the users list if we're on that tab
+      const usersTab = document.getElementById("users-tab");
+      if (usersTab && usersTab.classList.contains("active")) {
+        loadUsers();
+      }
+    } catch (err) {
+      console.error("adminUpsertUser error:", err);
+      if (statusDiv) {
+        const msg = err.message || "Failed to create/update user.";
+        statusDiv.className = "error-message";
+        statusDiv.textContent = `Error: ${msg}`;
+        statusDiv.style.display = "block";
+      }
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  console.log("Admin User Manager initialized");
+}
+
+// ============================================================================
 // ADMIN PAGE
 // ============================================================================
 
@@ -1026,6 +1163,8 @@ function initAdminPage() {
   updateAuthUI();
   console.log("Admin page initialized. Admin user:", currentUser, currentUserDoc);
   // Admin page has its own inline script for now
+  // Initialize admin user manager if on admin page
+  initAdminUserManager();
 }
 
 // ============================================================================
@@ -1380,6 +1519,7 @@ window.isAdmin = isAdmin;
 window.hasChatAccess = hasChatAccess;
 window.formatDate = formatDate;
 window.formatTime = formatTime;
+window.initAdminUserManager = initAdminUserManager;
 
 console.log('$lip$mith Application initialized with unified auth flow');
 
