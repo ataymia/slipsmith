@@ -22,10 +22,16 @@
     </nav>
 
     <main class="account-main">
-        <section class="account-card">
-            <h1>Your Account</h1>
+        <div class="container">
+            <div id="auth-required" class="auth-notice" style="display: none;">
+                <h2>🔒 Authentication Required</h2>
+                <p>Please <a href="login.html">login</a> to access your account settings.</p>
+            </div>
 
-            <!-- Basic info -->
+            <section id="account-content" class="account-card">
+                <h1>Your Account</h1>
+
+                <!-- Basic info -->
             <div class="account-section">
                 <h2>Profile</h2>
                 <p><strong>Email:</strong> <span id="account-email"></span></p>
@@ -64,7 +70,8 @@
                 <button id="account-delete-button">Delete my account</button>
                 <div id="account-delete-status" class="account-status"></div>
             </div>
-        </section>
+            </section>
+        </div>
     </main>
 
     <footer>
