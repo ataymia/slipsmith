@@ -1797,18 +1797,36 @@ function initConversationsList() {
       
       // Render conversations
       conversationsList.innerHTML = '';
-      conversations.forEach((conv, userId) => {
+      conversations.forEach(async (conv, userId) => {
+        // Fetch user data for badges
+        let userData = null;
+        try {
+          const userDoc = await db.collection('users').doc(userId).get();
+          userData = userDoc.data();
+        } catch (error) {
+          console.error('Error fetching user data for conversation:', error);
+        }
+        
         const div = document.createElement('div');
         div.className = 'conversation-item';
-        div.onclick = () => openConversation(userId, conv.userName, conv.messages);
+        div.onclick = () => openConversation(userId, conv.userName, conv.messages, userData);
         
         const time = conv.lastMessageTime?.toDate ? 
           conv.lastMessageTime.toDate().toLocaleString() : 
           'Unknown';
         
+        // Build badges
+        const tier = userData?.tier || 'starter';
+        const tierBadge = `<span class="badge-tier-${tier}">${tier.toUpperCase()}</span>`;
+        const roleBadge = userData?.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+        
         div.innerHTML = `
           <div class="conversation-item-info">
-            <div class="conversation-item-name">${conv.userName}</div>
+            <div class="conversation-item-name">
+              ${conv.userName}
+              ${tierBadge}
+              ${roleBadge}
+            </div>
             <div class="conversation-item-preview">${conv.lastMessage.substring(0, 100)}${conv.lastMessage.length > 100 ? '...' : ''}</div>
           </div>
           <div class="conversation-item-time">${time}</div>
@@ -1827,7 +1845,7 @@ function initConversationsList() {
   }
 }
 
-function openConversation(userId, userName, messages) {
+function openConversation(userId, userName, messages, userData = null) {
   const conversationView = document.getElementById('conversation-view');
   const conversationWith = document.getElementById('conversation-with');
   const conversationMessages = document.getElementById('conversation-messages');
@@ -1839,8 +1857,12 @@ function openConversation(userId, userName, messages) {
   conversationsSection.style.display = 'none';
   conversationView.style.display = 'block';
   
-  // Set conversation title
-  conversationWith.textContent = `Conversation with ${userName}`;
+  // Set conversation title with badges
+  const tier = userData?.tier || 'starter';
+  const tierBadge = `<span class="badge-tier-${tier}">${tier.toUpperCase()}</span>`;
+  const roleBadge = userData?.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+  
+  conversationWith.innerHTML = `Conversation with ${userName} ${tierBadge} ${roleBadge}`;
   
   // Render messages
   messages.sort((a, b) => {
@@ -1853,10 +1875,18 @@ function openConversation(userId, userName, messages) {
     const isSent = msg.fromUserId === currentUser.uid;
     const time = msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleString() : 'Unknown';
     
+    // Add badges to message headers for received messages
+    let senderDisplay = isSent ? 'You' : userName;
+    if (!isSent && userData) {
+      const msgTierBadge = `<span class="badge-tier-${userData.tier || 'starter'}">${(userData.tier || 'starter').toUpperCase()}</span>`;
+      const msgRoleBadge = userData.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+      senderDisplay = `${userName} ${msgTierBadge} ${msgRoleBadge}`;
+    }
+    
     return `
       <div class="conversation-message ${isSent ? 'sent' : ''}">
         <div class="conversation-message-header">
-          <span class="conversation-message-sender">${isSent ? 'You' : userName}</span>
+          <span class="conversation-message-sender">${senderDisplay}</span>
           <span class="conversation-message-time">${time}</span>
         </div>
         ${msg.subject ? `<div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.3rem;">Re: ${msg.subject}</div>` : ''}
