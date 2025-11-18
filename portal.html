@@ -100,7 +100,18 @@
                     <div class="portal-grid">
                         <!-- Content Feed -->
                         <div class="content-section">
-                            <h2>Content Feed</h2>
+                            <div class="content-feed-header">
+                                <h2>Content Feed</h2>
+                                <div class="tier-filter-controls">
+                                    <label for="tier-filter-select">Filter by tier:</label>
+                                    <select id="tier-filter-select" class="tier-select">
+                                        <option value="all">All Available</option>
+                                        <option value="starter">Starter Only</option>
+                                        <option value="pro">Pro & Below</option>
+                                        <option value="vip">VIP Only</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div id="posts-container" class="posts-container">
                                 <div class="loading">Loading posts...</div>
                             </div>

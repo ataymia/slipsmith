@@ -856,6 +856,9 @@ function initPortalPage() {
   // Load posts based on tier
   loadPosts(tier);
 
+  // Initialize tier filter for content feed
+  initContentFeedTierFilter(tier);
+
   // Initialize slip request section
   initSlipRequestForPortal();
   
@@ -1180,6 +1183,9 @@ async function loadPosts(userTier) {
 
   try {
     const posts = await getPostsByTier(userTier);
+    
+    // Cache posts for client-side filtering
+    allPostsCache = posts;
 
     if (posts.length === 0) {
       container.innerHTML = '<p class="no-content">No posts available yet. Check back soon!</p>';
@@ -1220,6 +1226,95 @@ async function loadPosts(userTier) {
   } catch (error) {
     console.error('Error loading posts:', error);
     container.innerHTML = '<p class="error">Error loading posts. Please try again.</p>';
+  }
+}
+
+// Store all posts for client-side filtering
+let allPostsCache = [];
+
+function initContentFeedTierFilter(userTier) {
+  const filterSelect = document.getElementById('tier-filter-select');
+  if (!filterSelect) return;
+  
+  // Set default to "all"
+  filterSelect.value = 'all';
+  
+  filterSelect.addEventListener('change', () => {
+    const filterValue = filterSelect.value;
+    applyClientSideTierFilter(filterValue, userTier);
+  });
+}
+
+async function applyClientSideTierFilter(filterValue, userTier) {
+  const container = document.getElementById("posts-container");
+  if (!container) return;
+  
+  try {
+    // If cache is empty, load all posts first
+    if (allPostsCache.length === 0) {
+      allPostsCache = await getPostsByTier(userTier);
+    }
+    
+    const tierLevels = { starter: 1, pro: 2, vip: 3 };
+    
+    // Apply client-side filter
+    let filteredPosts = allPostsCache;
+    
+    if (filterValue !== 'all') {
+      filteredPosts = allPostsCache.filter(post => {
+        const postTier = post.minTier.toLowerCase();
+        
+        if (filterValue === 'starter') {
+          return postTier === 'starter';
+        } else if (filterValue === 'pro') {
+          return postTier === 'starter' || postTier === 'pro';
+        } else if (filterValue === 'vip') {
+          return postTier === 'vip';
+        }
+        
+        return true;
+      });
+    }
+    
+    if (filteredPosts.length === 0) {
+      container.innerHTML = '<p class="no-content">No posts match the selected filter.</p>';
+      return;
+    }
+    
+    // Render filtered posts
+    container.innerHTML = filteredPosts.map(post => {
+      const isBot = post.authorType === 'bot' || post.authorName === 'Slipsmith Bot';
+      const botBadge = isBot ? '<span class="badge-author-bot">Bot</span>' : '';
+      
+      return `
+        <div class="post-card">
+          <div class="post-header">
+            <h3>${post.title}</h3>
+            <div>
+              <span class="post-tier tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
+              ${botBadge}
+            </div>
+          </div>
+          <div class="post-meta">
+            <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div class="post-content">
+            ${post.content}
+          </div>
+          ${post.mediaUrl ? `
+            <div class="post-media">
+              ${post.mediaType?.startsWith('image') ?
+                `<img src="${post.mediaUrl}" alt="${post.title}">` :
+                `<a href="${post.mediaUrl}" target="_blank" class="btn btn-outline btn-sm">View Attachment</a>`
+              }
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Error filtering posts:', error);
+    container.innerHTML = '<p class="error">Error filtering posts. Please try again.</p>';
   }
 }
 

@@ -1194,6 +1194,26 @@ a:hover {
     cursor: pointer;
 }
 
+.content-feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.tier-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tier-filter-controls label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 .filter-controls {
     margin-bottom: 1.5rem;
 }
