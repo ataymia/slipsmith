@@ -1684,6 +1684,92 @@ function initAccountPage() {
       }
     });
   }
+
+  // 6) Load slip request history for Pro/VIP users
+  const tier = currentUserDoc.tier || "starter";
+  if (tier === "pro" || tier === "vip") {
+    loadSlipRequestHistory();
+  }
+}
+
+// ============================================================================
+// SLIP REQUEST HISTORY
+// ============================================================================
+
+async function loadSlipRequestHistory() {
+  const section = document.getElementById("slip-request-history-section");
+  const container = document.getElementById("slip-request-history-container");
+  
+  if (!section || !container || !currentUser) return;
+  
+  section.style.display = "block";
+  
+  try {
+    const snapshot = await db.collection("slipRequests")
+      .where("userId", "==", currentUser.uid)
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+    
+    if (snapshot.empty) {
+      container.innerHTML = '<p class="no-content">You haven\'t submitted any slip requests yet.</p>';
+      return;
+    }
+    
+    let historyHtml = '<div class="slip-requests-list">';
+    
+    snapshot.docs.forEach(doc => {
+      const request = doc.data();
+      const createdDate = request.createdAt?.toDate ? request.createdAt.toDate() : new Date();
+      const respondedDate = request.respondedAt?.toDate ? request.respondedAt.toDate() : null;
+      
+      const statusClass = request.status === 'answered' ? 'status-answered' : 
+                         request.status === 'declined' ? 'status-declined' : 
+                         'status-pending';
+      
+      const statusText = request.status === 'answered' ? 'Answered' : 
+                        request.status === 'declined' ? 'Declined' : 
+                        'Pending';
+      
+      // Create a summary of the request (first 100 chars)
+      const requestSummary = request.requestText.length > 100 
+        ? request.requestText.substring(0, 100) + '...' 
+        : request.requestText;
+      
+      historyHtml += `
+        <div class="slip-request-history-item">
+          <div class="slip-request-header">
+            <div class="slip-request-sport">
+              <strong>${request.sport || 'N/A'}</strong>
+            </div>
+            <div class="slip-request-status ${statusClass}">
+              ${statusText}
+            </div>
+          </div>
+          <div class="slip-request-details">
+            <p class="slip-request-summary">${requestSummary}</p>
+            <p class="slip-request-meta">
+              <small>Submitted: ${createdDate.toLocaleDateString()}</small>
+              ${respondedDate ? `<small> • Responded: ${respondedDate.toLocaleDateString()}</small>` : ''}
+            </p>
+          </div>
+          ${request.responseSlip || request.responseMessage ? `
+            <div class="slip-request-response">
+              <strong>Response:</strong>
+              <p>${request.responseSlip || request.responseMessage || 'No response message'}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    
+    historyHtml += '</div>';
+    container.innerHTML = historyHtml;
+    
+  } catch (error) {
+    console.error("Error loading slip request history:", error);
+    container.innerHTML = '<p class="error">Failed to load slip request history. Please try again.</p>';
+  }
 }
 
 // ============================================================================
