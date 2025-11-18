@@ -773,8 +773,8 @@ function initPortalPage() {
     initializeChat();
   }
 
-  // Load posts based on tier
-  loadPosts(tier);
+  // Initialize content tier filter
+  initContentTierFilter(tier);
 
   // Initialize slip request section
   initSlipRequestForPortal();
@@ -1094,19 +1094,116 @@ function initSlipRequestForPortal() {
   });
 }
 
-async function loadPosts(userTier) {
+// Current content tier filter state
+let currentContentTierFilter = 'all';
+
+/**
+ * Initialize content tier filter UI based on user's tier
+ * VIP users can filter: all, vip, pro+vip, starter+pro+vip
+ * Pro users can filter: all, pro, starter+pro
+ * Starter users only see starter content (no filter)
+ */
+function initContentTierFilter(userTier) {
+  const filterContainer = document.getElementById('content-filter-controls');
+  if (!filterContainer) return;
+
+  const tier = userTier.toLowerCase();
+  
+  // Starter users don't need filter - they only see starter content
+  if (tier === 'starter') {
+    filterContainer.style.display = 'none';
+    currentContentTierFilter = 'starter';
+    loadPostsWithFilter(tier);
+    return;
+  }
+
+  filterContainer.style.display = 'flex';
+  
+  // Define filter options based on tier
+  let filterOptions = [];
+  
+  if (tier === 'vip') {
+    filterOptions = [
+      { value: 'all', label: 'All Posts' },
+      { value: 'vip', label: 'VIP Only' },
+      { value: 'pro-vip', label: 'Pro + VIP' },
+    ];
+  } else if (tier === 'pro') {
+    filterOptions = [
+      { value: 'all', label: 'All Posts' },
+      { value: 'pro', label: 'Pro Only' },
+      { value: 'starter-pro', label: 'Starter + Pro' },
+    ];
+  }
+  
+  // Create filter buttons
+  filterContainer.innerHTML = filterOptions.map(option => `
+    <button class="tier-filter-btn ${option.value === 'all' ? 'active' : ''}" data-filter="${option.value}">
+      ${option.label}
+    </button>
+  `).join('');
+  
+  // Add click handlers to filter buttons
+  const filterButtons = filterContainer.querySelectorAll('.tier-filter-btn');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      filterButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Update filter and reload posts
+      currentContentTierFilter = btn.getAttribute('data-filter');
+      loadPostsWithFilter(tier);
+    });
+  });
+  
+  // Initial load with 'all' filter
+  currentContentTierFilter = 'all';
+  loadPostsWithFilter(tier);
+}
+
+/**
+ * Load posts with the current tier filter applied
+ */
+async function loadPostsWithFilter(userTier) {
   const container = document.getElementById("posts-container");
   if (!container) return;
 
   try {
-    const posts = await getPostsByTier(userTier);
+    // Get all posts user can access based on their tier
+    const allPosts = await getPostsByTier(userTier);
+    
+    // Apply filter
+    let filteredPosts = allPosts;
+    const filter = currentContentTierFilter;
+    
+    if (filter !== 'all') {
+      filteredPosts = allPosts.filter(post => {
+        const postTier = post.minTier.toLowerCase();
+        
+        switch (filter) {
+          case 'vip':
+            return postTier === 'vip';
+          case 'pro-vip':
+            return postTier === 'pro' || postTier === 'vip';
+          case 'pro':
+            return postTier === 'pro';
+          case 'starter-pro':
+            return postTier === 'starter' || postTier === 'pro';
+          case 'starter':
+            return postTier === 'starter';
+          default:
+            return true;
+        }
+      });
+    }
 
-    if (posts.length === 0) {
-      container.innerHTML = '<p class="no-content">No posts available yet. Check back soon!</p>';
+    if (filteredPosts.length === 0) {
+      container.innerHTML = '<p class="no-content">No posts available for the selected filter. Check back soon!</p>';
       return;
     }
 
-    container.innerHTML = posts.map(post => {
+    container.innerHTML = filteredPosts.map(post => {
       // Determine if post is from bot
       const isBot = post.authorType === 'bot' || post.authorName === 'Slipsmith Bot';
       const botBadge = isBot ? '<span class="badge-author-bot">Bot</span>' : '';
@@ -1141,6 +1238,11 @@ async function loadPosts(userTier) {
     console.error('Error loading posts:', error);
     container.innerHTML = '<p class="error">Error loading posts. Please try again.</p>';
   }
+}
+
+// Keep the original loadPosts function for backward compatibility
+async function loadPosts(userTier) {
+  await loadPostsWithFilter(userTier);
 }
 
 async function initializeChat() {
