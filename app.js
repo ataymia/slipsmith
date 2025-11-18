@@ -2313,7 +2313,7 @@ function loadFriends() {
   
   db.collection('friendships')
     .where('users', 'array-contains', currentUser.uid)
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         friendsList.innerHTML = '<p class="no-content">No friends yet. Click "Add Friend" to connect with other users.</p>';
         return;
@@ -2321,7 +2321,8 @@ function loadFriends() {
       
       friendsList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const friendPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         const friendId = data.users.find(id => id !== currentUser.uid);
         
@@ -2367,8 +2368,14 @@ function loadFriends() {
           </div>
         `;
         
-        friendsList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all friend items to be created
+      const friendElements = await Promise.all(friendPromises);
+      
+      // Append all elements at once
+      friendElements.forEach(div => friendsList.appendChild(div));
     });
 }
 
@@ -2380,7 +2387,7 @@ function loadFriendRequests() {
   db.collection('friendRequests')
     .where('toUserId', '==', currentUser.uid)
     .where('status', '==', 'pending')
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         requestsList.innerHTML = '<p class="no-content">No pending friend requests.</p>';
         return;
@@ -2388,7 +2395,8 @@ function loadFriendRequests() {
       
       requestsList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const requestPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         
         // Get requester data for tier and role
@@ -2425,8 +2433,14 @@ function loadFriendRequests() {
           </div>
         `;
         
-        requestsList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all request items to be created
+      const requestElements = await Promise.all(requestPromises);
+      
+      // Append all elements at once
+      requestElements.forEach(div => requestsList.appendChild(div));
     });
 }
 
@@ -2438,7 +2452,7 @@ function loadOutgoingRequests() {
   db.collection('friendRequests')
     .where('fromUserId', '==', currentUser.uid)
     .where('status', '==', 'pending')
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         outgoingList.innerHTML = '<p class="no-content">No outgoing friend requests.</p>';
         return;
@@ -2446,7 +2460,8 @@ function loadOutgoingRequests() {
       
       outgoingList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const outgoingPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         
         // Get recipient data for tier and role
@@ -2484,8 +2499,14 @@ function loadOutgoingRequests() {
           </div>
         `;
         
-        outgoingList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all outgoing request items to be created
+      const outgoingElements = await Promise.all(outgoingPromises);
+      
+      // Append all elements at once
+      outgoingElements.forEach(div => outgoingList.appendChild(div));
     });
 }
 
