@@ -1074,23 +1074,29 @@ a:hover {
 }
 
 .badge-tier-starter {
-    background: rgba(100, 100, 100, 0.3);
-    color: var(--text-secondary);
+    background: linear-gradient(135deg, rgba(77, 184, 255, 0.2), rgba(77, 184, 255, 0.4));
+    color: var(--tier-starter);
+    border: 1px solid rgba(77, 184, 255, 0.5);
+    text-shadow: 0 0 5px rgba(77, 184, 255, 0.3);
 }
 
 .badge-tier-pro {
-    background: rgba(0, 136, 255, 0.3);
-    color: #4da6ff;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.4));
+    color: var(--tier-pro);
+    border: 1px solid rgba(0, 255, 136, 0.5);
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
 }
 
 .badge-tier-vip {
-    background: rgba(255, 215, 0, 0.3);
-    color: #ffd700;
+    background: linear-gradient(135deg, rgba(255, 170, 0, 0.2), rgba(255, 170, 0, 0.4));
+    color: var(--tier-vip);
+    border: 1px solid rgba(255, 170, 0, 0.5);
+    text-shadow: 0 0 5px rgba(255, 170, 0, 0.3);
 }
 
 /* Role Badge Styles */
 .badge-role-admin {
-    background: var(--danger);
+    background: linear-gradient(135deg, var(--danger), #ff6666);
     color: white;
     padding: 0.2rem 0.6rem;
     border-radius: 12px;
@@ -1098,6 +1104,9 @@ a:hover {
     font-weight: bold;
     display: inline-block;
     margin-left: 0.3rem;
+    border: 1px solid rgba(255, 68, 68, 0.6);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Bot Author Badge */
