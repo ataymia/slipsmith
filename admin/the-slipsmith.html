@@ -645,7 +645,14 @@
     <!-- html2canvas for image generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <!-- Firebase SDKs (v9 compat) - Load parent's Firebase -->
+    <!-- Firebase SDKs (v9 compat) - Must be loaded before firebase.js -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+    
+    <!-- Firebase initialization and app logic -->
     <script src="../firebase.js"></script>
     <script src="../app.js"></script>
     
@@ -1578,13 +1585,16 @@
                 
                 statusDiv.innerHTML = '<div style="color: var(--accent-green); padding: 0.75rem; background: rgba(0, 255, 136, 0.1); border-radius: 8px;">📝 Creating post...</div>';
                 
-                // Create the post
+                // Create the post with bot metadata
                 const postData = {
                     title: title,
                     content: description || `${currentPostType === 'slip' ? '🎯 Morning Slip' : '📊 Results Recap'}`,
                     minTier: minTier,
                     mediaUrl: mediaData.url,
-                    mediaType: 'image/png'
+                    mediaType: 'image/png',
+                    authorName: 'Slipsmith Bot',
+                    authorType: 'bot',
+                    source: 'Slipsmith Bot'
                 };
                 
                 await window.createPost(postData);
