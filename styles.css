@@ -684,6 +684,14 @@ a:hover {
     justify-content: space-between;
     align-items: start;
     margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.post-header > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .post-header h3 {
@@ -1053,6 +1061,57 @@ a:hover {
     font-weight: bold;
 }
 
+/* Tier Badge Styles */
+.badge-tier-starter,
+.badge-tier-pro,
+.badge-tier-vip {
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.3rem;
+}
+
+.badge-tier-starter {
+    background: rgba(100, 100, 100, 0.3);
+    color: var(--text-secondary);
+}
+
+.badge-tier-pro {
+    background: rgba(0, 136, 255, 0.3);
+    color: #4da6ff;
+}
+
+.badge-tier-vip {
+    background: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+}
+
+/* Role Badge Styles */
+.badge-role-admin {
+    background: var(--danger);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.3rem;
+}
+
+/* Bot Author Badge */
+.badge-author-bot {
+    background: rgba(138, 43, 226, 0.3);
+    color: #a855f7;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 0.3rem;
+}
+
 /* Admin Slip Requests */
 .admin-slip-request-card {
     background: var(--bg-tertiary);
@@ -1407,6 +1466,10 @@ a:hover {
     font-weight: 600;
     font-size: 1.1rem;
     margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
 }
 
 .conversation-item-preview {
@@ -1484,6 +1547,10 @@ a:hover {
 .conversation-message-sender {
     color: var(--accent-green);
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
 }
 
 .conversation-message-time {
