@@ -1106,28 +1106,37 @@ async function loadPosts(userTier) {
       return;
     }
 
-    container.innerHTML = posts.map(post => `
-      <div class="post-card">
-        <div class="post-header">
-          <h3>${post.title}</h3>
-          <span class="post-tier tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
-        </div>
-        <div class="post-meta">
-          <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
-        </div>
-        <div class="post-content">
-          ${post.content}
-        </div>
-        ${post.mediaUrl ? `
-          <div class="post-media">
-            ${post.mediaType?.startsWith('image') ?
-              `<img src="${post.mediaUrl}" alt="${post.title}">` :
-              `<a href="${post.mediaUrl}" target="_blank" class="btn btn-outline btn-sm">View Attachment</a>`
-            }
+    container.innerHTML = posts.map(post => {
+      // Determine if post is from bot
+      const isBot = post.authorType === 'bot' || post.authorName === 'Slipsmith Bot';
+      const botBadge = isBot ? '<span class="badge-author-bot">Bot</span>' : '';
+      
+      return `
+        <div class="post-card">
+          <div class="post-header">
+            <h3>${post.title}</h3>
+            <div>
+              <span class="post-tier tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
+              ${botBadge}
+            </div>
           </div>
-        ` : ''}
-      </div>
-    `).join('');
+          <div class="post-meta">
+            <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div class="post-content">
+            ${post.content}
+          </div>
+          ${post.mediaUrl ? `
+            <div class="post-media">
+              ${post.mediaType?.startsWith('image') ?
+                `<img src="${post.mediaUrl}" alt="${post.title}">` :
+                `<a href="${post.mediaUrl}" target="_blank" class="btn btn-outline btn-sm">View Attachment</a>`
+              }
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
   } catch (error) {
     console.error('Error loading posts:', error);
     container.innerHTML = '<p class="error">Error loading posts. Please try again.</p>';
@@ -1950,6 +1959,7 @@ function initFriendsTab() {
   initAddFriendModal();
   loadFriends();
   loadFriendRequests();
+  loadOutgoingRequests();
 }
 
 function initAddFriendModal() {
@@ -2000,7 +2010,13 @@ function initAddFriendModal() {
         if (searchValue.includes('@')) {
           userSnap = await db.collection('users').where('email', '==', searchValue).limit(1).get();
         } else {
-          userSnap = await db.collection('users').where('username', '==', searchValue).limit(1).get();
+          // Try usernameLower for case-insensitive search
+          userSnap = await db.collection('users').where('usernameLower', '==', searchValue.toLowerCase()).limit(1).get();
+          
+          // Fallback to exact username match if usernameLower doesn't exist
+          if (userSnap.empty) {
+            userSnap = await db.collection('users').where('username', '==', searchValue).limit(1).get();
+          }
         }
         
         if (userSnap.empty) {
@@ -2101,11 +2117,22 @@ function loadFriends() {
         const isOnline = isUserOnline(friendData.lastSeen);
         const statusText = isOnline ? 'Online' : formatLastSeen(friendData.lastSeen);
         
+        // Build tier badge
+        const tier = friendData.tier || 'starter';
+        const tierBadge = `<span class="badge-tier-${tier}">${tier.toUpperCase()}</span>`;
+        
+        // Build role badge if admin
+        const roleBadge = friendData.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+        
         div.innerHTML = `
           <div class="friend-info">
             <div class="friend-avatar">${initial}</div>
             <div class="friend-details">
-              <div class="friend-name">${friendName}</div>
+              <div class="friend-name">
+                ${friendName}
+                ${tierBadge}
+                ${roleBadge}
+              </div>
               <div class="friend-status">
                 <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}"></span>
                 ${statusText}
@@ -2139,19 +2166,34 @@ function loadFriendRequests() {
       
       requestsList.innerHTML = '';
       
-      snapshot.docs.forEach(doc => {
+      snapshot.docs.forEach(async (doc) => {
         const data = doc.data();
+        
+        // Get requester data for tier and role
+        const requesterDoc = await db.collection('users').doc(data.fromUserId).get();
+        const requesterData = requesterDoc.data() || {};
         
         const div = document.createElement('div');
         div.className = 'friend-request-item';
         
         const initial = data.fromUsername.charAt(0).toUpperCase();
         
+        // Build tier badge
+        const tier = requesterData.tier || 'starter';
+        const tierBadge = `<span class="badge-tier-${tier}">${tier.toUpperCase()}</span>`;
+        
+        // Build role badge if admin
+        const roleBadge = requesterData.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+        
         div.innerHTML = `
           <div class="friend-info">
             <div class="friend-avatar">${initial}</div>
             <div class="friend-details">
-              <div class="friend-name">${data.fromUsername}</div>
+              <div class="friend-name">
+                ${data.fromUsername}
+                ${tierBadge}
+                ${roleBadge}
+              </div>
               <div class="friend-status">wants to be friends</div>
             </div>
           </div>
@@ -2162,6 +2204,65 @@ function loadFriendRequests() {
         `;
         
         requestsList.appendChild(div);
+      });
+    });
+}
+
+function loadOutgoingRequests() {
+  const outgoingList = document.getElementById('outgoing-requests-list');
+  
+  if (!outgoingList || !currentUser) return;
+  
+  db.collection('friendRequests')
+    .where('fromUserId', '==', currentUser.uid)
+    .where('status', '==', 'pending')
+    .onSnapshot((snapshot) => {
+      if (snapshot.empty) {
+        outgoingList.innerHTML = '<p class="no-content">No outgoing friend requests.</p>';
+        return;
+      }
+      
+      outgoingList.innerHTML = '';
+      
+      snapshot.docs.forEach(async (doc) => {
+        const data = doc.data();
+        
+        // Get recipient data for tier and role
+        const recipientDoc = await db.collection('users').doc(data.toUserId).get();
+        const recipientData = recipientDoc.data() || {};
+        
+        const div = document.createElement('div');
+        div.className = 'friend-request-item';
+        
+        const initial = data.toUsername.charAt(0).toUpperCase();
+        
+        // Build tier badge
+        const tier = recipientData.tier || 'starter';
+        const tierBadge = `<span class="badge-tier-${tier}">${tier.toUpperCase()}</span>`;
+        
+        // Build role badge if admin
+        const roleBadge = recipientData.role === 'admin' ? '<span class="badge-role-admin">Admin</span>' : '';
+        
+        div.innerHTML = `
+          <div class="friend-info">
+            <div class="friend-avatar">${initial}</div>
+            <div class="friend-details">
+              <div class="friend-name">
+                ${data.toUsername}
+                ${tierBadge}
+                ${roleBadge}
+              </div>
+              <div class="friend-status">
+                <span style="color: var(--text-muted); font-size: 0.85rem;">Pending</span>
+              </div>
+            </div>
+          </div>
+          <div class="friend-actions">
+            <button class="btn-decline-friend" onclick="window.cancelFriendRequest('${doc.id}')">Cancel</button>
+          </div>
+        `;
+        
+        outgoingList.appendChild(div);
       });
     });
 }
@@ -2196,6 +2297,7 @@ window.acceptFriendRequest = async function(requestId, fromUserId) {
     // Update request status
     await db.collection('friendRequests').doc(requestId).update({
       status: 'accepted',
+      respondedAt: getServerTimestamp(),
       updatedAt: getServerTimestamp()
     });
   } catch (error) {
@@ -2208,11 +2310,23 @@ window.declineFriendRequest = async function(requestId) {
   try {
     await db.collection('friendRequests').doc(requestId).update({
       status: 'declined',
+      respondedAt: getServerTimestamp(),
       updatedAt: getServerTimestamp()
     });
   } catch (error) {
     console.error('Error declining friend request:', error);
     alert('Failed to decline friend request. Please try again.');
+  }
+};
+
+window.cancelFriendRequest = async function(requestId) {
+  if (!confirm('Are you sure you want to cancel this friend request?')) return;
+  
+  try {
+    await db.collection('friendRequests').doc(requestId).delete();
+  } catch (error) {
+    console.error('Error canceling friend request:', error);
+    alert('Failed to cancel friend request. Please try again.');
   }
 };
 

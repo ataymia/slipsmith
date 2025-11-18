@@ -84,6 +84,14 @@
                                         <button type="button" class="btn btn-sm btn-outline" id="remove-media">Remove</button>
                                     </div>
 
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" id="post-as-bot">
+                                            Post as Slipsmith Bot
+                                        </label>
+                                        <small class="form-hint">Check this to post content as the Slipsmith Bot instead of a regular admin post</small>
+                                    </div>
+
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-primary" id="save-post-btn">
                                             <span class="btn-text">Create Post</span>
@@ -563,6 +571,7 @@
             const content = document.getElementById('post-content').value;
             const minTier = document.getElementById('post-tier').value;
             const mediaFile = document.getElementById('post-media').files[0];
+            const postAsBot = document.getElementById('post-as-bot').checked;
             
             const btn = document.getElementById('save-post-btn');
             const btnText = btn.querySelector('.btn-text');
@@ -578,6 +587,13 @@
 
             try {
                 const postData = { title, content, minTier };
+
+                // Add bot metadata if posting as bot
+                if (postAsBot) {
+                    postData.authorName = 'Slipsmith Bot';
+                    postData.authorType = 'bot';
+                    postData.source = 'Slipsmith Bot';
+                }
 
                 // Upload media if provided
                 if (mediaFile) {
