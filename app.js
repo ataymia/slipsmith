@@ -385,11 +385,91 @@ auth.onAuthStateChanged(async (user) => {
     } else {
       initPublicPage(page);
     }
+    // Initialize inbox notification markers if user is authenticated
+    if (currentUser && currentUserDoc) {
+      initInboxNotificationMarkers();
+    }
   } catch (err) {
     logDebug('error fetching user profile', { err });
     console.error("Error fetching user profile:", err);
   }
 });
+
+// ============================================================================
+// INBOX NOTIFICATION MARKERS
+// ============================================================================
+
+let inboxAlertState = {
+  hasNewMessages: false,
+  hasPendingFriendRequests: false
+};
+
+// Unsubscribe functions for cleanup
+let inboxAlertUnsubscribers = [];
+
+function initInboxNotificationMarkers() {
+  if (!currentUser || !currentUserDoc) return;
+  
+  // Clean up any existing listeners
+  inboxAlertUnsubscribers.forEach(unsub => unsub());
+  inboxAlertUnsubscribers = [];
+  
+  const lastSeenInbox = currentUserDoc.lastSeenInbox || null;
+  
+  // Listener for new messages
+  const messagesUnsub = db.collection('inboxMessages')
+    .where('toUserId', '==', currentUser.uid)
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .onSnapshot(snapshot => {
+      let hasNewMessages = false;
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.createdAt) return;
+        
+        // Check if message is newer than lastSeenInbox
+        if (!lastSeenInbox || data.createdAt.toMillis() > lastSeenInbox.toMillis()) {
+          hasNewMessages = true;
+        }
+      });
+      
+      updateInboxMarker({ hasNewMessages });
+    });
+  
+  inboxAlertUnsubscribers.push(messagesUnsub);
+  
+  // Listener for pending friend requests
+  const friendReqUnsub = db.collection('friendRequests')
+    .where('toUserId', '==', currentUser.uid)
+    .where('status', '==', 'pending')
+    .onSnapshot(snapshot => {
+      const hasPendingFriendRequests = !snapshot.empty;
+      updateInboxMarker({ hasPendingFriendRequests });
+    });
+  
+  inboxAlertUnsubscribers.push(friendReqUnsub);
+}
+
+function updateInboxMarker(partial) {
+  inboxAlertState = { ...inboxAlertState, ...partial };
+  
+  const hasAlert =
+    inboxAlertState.hasNewMessages ||
+    inboxAlertState.hasPendingFriendRequests;
+  
+  const navPill = document.getElementById('nav-inbox-alert-pill');
+  const headerPill = document.getElementById('inbox-header-alert-pill');
+  
+  [navPill, headerPill].forEach(el => {
+    if (!el) return;
+    if (hasAlert) {
+      el.classList.add('nav-pill-alert--active');
+    } else {
+      el.classList.remove('nav-pill-alert--active');
+    }
+  });
+}
 
 // ============================================================================
 // LOGIN PAGE (USERNAME + TEMP PASSWORD HANDLING)
@@ -776,6 +856,9 @@ function initPortalPage() {
   // Load posts based on tier
   loadPosts(tier);
 
+  // Initialize tier filter for content feed
+  initContentFeedTierFilter(tier);
+
   // Initialize slip request section
   initSlipRequestForPortal();
   
@@ -1100,6 +1183,9 @@ async function loadPosts(userTier) {
 
   try {
     const posts = await getPostsByTier(userTier);
+    
+    // Cache posts for client-side filtering
+    allPostsCache = posts;
 
     if (posts.length === 0) {
       container.innerHTML = '<p class="no-content">No posts available yet. Check back soon!</p>';
@@ -1140,6 +1226,95 @@ async function loadPosts(userTier) {
   } catch (error) {
     console.error('Error loading posts:', error);
     container.innerHTML = '<p class="error">Error loading posts. Please try again.</p>';
+  }
+}
+
+// Store all posts for client-side filtering
+let allPostsCache = [];
+
+function initContentFeedTierFilter(userTier) {
+  const filterSelect = document.getElementById('tier-filter-select');
+  if (!filterSelect) return;
+  
+  // Set default to "all"
+  filterSelect.value = 'all';
+  
+  filterSelect.addEventListener('change', () => {
+    const filterValue = filterSelect.value;
+    applyClientSideTierFilter(filterValue, userTier);
+  });
+}
+
+async function applyClientSideTierFilter(filterValue, userTier) {
+  const container = document.getElementById("posts-container");
+  if (!container) return;
+  
+  try {
+    // If cache is empty, load all posts first
+    if (allPostsCache.length === 0) {
+      allPostsCache = await getPostsByTier(userTier);
+    }
+    
+    const tierLevels = { starter: 1, pro: 2, vip: 3 };
+    
+    // Apply client-side filter
+    let filteredPosts = allPostsCache;
+    
+    if (filterValue !== 'all') {
+      filteredPosts = allPostsCache.filter(post => {
+        const postTier = post.minTier.toLowerCase();
+        
+        if (filterValue === 'starter') {
+          return postTier === 'starter';
+        } else if (filterValue === 'pro') {
+          return postTier === 'starter' || postTier === 'pro';
+        } else if (filterValue === 'vip') {
+          return postTier === 'vip';
+        }
+        
+        return true;
+      });
+    }
+    
+    if (filteredPosts.length === 0) {
+      container.innerHTML = '<p class="no-content">No posts match the selected filter.</p>';
+      return;
+    }
+    
+    // Render filtered posts
+    container.innerHTML = filteredPosts.map(post => {
+      const isBot = post.authorType === 'bot' || post.authorName === 'Slipsmith Bot';
+      const botBadge = isBot ? '<span class="badge-author-bot">Bot</span>' : '';
+      
+      return `
+        <div class="post-card">
+          <div class="post-header">
+            <h3>${post.title}</h3>
+            <div>
+              <span class="post-tier tier-${post.minTier}">${post.minTier.toUpperCase()}</span>
+              ${botBadge}
+            </div>
+          </div>
+          <div class="post-meta">
+            <span>📅 ${new Date(post.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div class="post-content">
+            ${post.content}
+          </div>
+          ${post.mediaUrl ? `
+            <div class="post-media">
+              ${post.mediaType?.startsWith('image') ?
+                `<img src="${post.mediaUrl}" alt="${post.title}">` :
+                `<a href="${post.mediaUrl}" target="_blank" class="btn btn-outline btn-sm">View Attachment</a>`
+              }
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Error filtering posts:', error);
+    container.innerHTML = '<p class="error">Error filtering posts. Please try again.</p>';
   }
 }
 
@@ -1509,6 +1684,92 @@ function initAccountPage() {
       }
     });
   }
+
+  // 6) Load slip request history for Pro/VIP users
+  const tier = currentUserDoc.tier || "starter";
+  if (tier === "pro" || tier === "vip") {
+    loadSlipRequestHistory();
+  }
+}
+
+// ============================================================================
+// SLIP REQUEST HISTORY
+// ============================================================================
+
+async function loadSlipRequestHistory() {
+  const section = document.getElementById("slip-request-history-section");
+  const container = document.getElementById("slip-request-history-container");
+  
+  if (!section || !container || !currentUser) return;
+  
+  section.style.display = "block";
+  
+  try {
+    const snapshot = await db.collection("slipRequests")
+      .where("userId", "==", currentUser.uid)
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+    
+    if (snapshot.empty) {
+      container.innerHTML = '<p class="no-content">You haven\'t submitted any slip requests yet.</p>';
+      return;
+    }
+    
+    let historyHtml = '<div class="slip-requests-list">';
+    
+    snapshot.docs.forEach(doc => {
+      const request = doc.data();
+      const createdDate = request.createdAt?.toDate ? request.createdAt.toDate() : new Date();
+      const respondedDate = request.respondedAt?.toDate ? request.respondedAt.toDate() : null;
+      
+      const statusClass = request.status === 'answered' ? 'status-answered' : 
+                         request.status === 'declined' ? 'status-declined' : 
+                         'status-pending';
+      
+      const statusText = request.status === 'answered' ? 'Answered' : 
+                        request.status === 'declined' ? 'Declined' : 
+                        'Pending';
+      
+      // Create a summary of the request (first 100 chars)
+      const requestSummary = request.requestText.length > 100 
+        ? request.requestText.substring(0, 100) + '...' 
+        : request.requestText;
+      
+      historyHtml += `
+        <div class="slip-request-history-item">
+          <div class="slip-request-header">
+            <div class="slip-request-sport">
+              <strong>${request.sport || 'N/A'}</strong>
+            </div>
+            <div class="slip-request-status ${statusClass}">
+              ${statusText}
+            </div>
+          </div>
+          <div class="slip-request-details">
+            <p class="slip-request-summary">${requestSummary}</p>
+            <p class="slip-request-meta">
+              <small>Submitted: ${createdDate.toLocaleDateString()}</small>
+              ${respondedDate ? `<small> • Responded: ${respondedDate.toLocaleDateString()}</small>` : ''}
+            </p>
+          </div>
+          ${request.responseSlip || request.responseMessage ? `
+            <div class="slip-request-response">
+              <strong>Response:</strong>
+              <p>${request.responseSlip || request.responseMessage || 'No response message'}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    
+    historyHtml += '</div>';
+    container.innerHTML = historyHtml;
+    
+  } catch (error) {
+    console.error("Error loading slip request history:", error);
+    container.innerHTML = '<p class="error">Failed to load slip request history. Please try again.</p>';
+  }
 }
 
 // ============================================================================
@@ -1577,6 +1838,23 @@ function initInboxPage() {
 
   if (authRequired) authRequired.style.display = "none";
   if (inboxContent) inboxContent.style.display = "block";
+
+  // Update lastSeenInbox timestamp
+  db.collection('users')
+    .doc(currentUser.uid)
+    .update({
+      lastSeenInbox: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      console.log('[Inbox] Updated lastSeenInbox timestamp');
+      // Update the local copy
+      if (currentUserDoc) {
+        currentUserDoc.lastSeenInbox = firebase.firestore.Timestamp.now();
+      }
+    })
+    .catch(err => {
+      console.error('[Inbox] Error updating lastSeenInbox:', err);
+    });
 
   // Update presence on page load
   updatePresence();
@@ -2121,7 +2399,7 @@ function loadFriends() {
   
   db.collection('friendships')
     .where('users', 'array-contains', currentUser.uid)
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         friendsList.innerHTML = '<p class="no-content">No friends yet. Click "Add Friend" to connect with other users.</p>';
         return;
@@ -2129,7 +2407,8 @@ function loadFriends() {
       
       friendsList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const friendPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         const friendId = data.users.find(id => id !== currentUser.uid);
         
@@ -2175,8 +2454,14 @@ function loadFriends() {
           </div>
         `;
         
-        friendsList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all friend items to be created
+      const friendElements = await Promise.all(friendPromises);
+      
+      // Append all elements at once
+      friendElements.forEach(div => friendsList.appendChild(div));
     });
 }
 
@@ -2188,7 +2473,7 @@ function loadFriendRequests() {
   db.collection('friendRequests')
     .where('toUserId', '==', currentUser.uid)
     .where('status', '==', 'pending')
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         requestsList.innerHTML = '<p class="no-content">No pending friend requests.</p>';
         return;
@@ -2196,7 +2481,8 @@ function loadFriendRequests() {
       
       requestsList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const requestPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         
         // Get requester data for tier and role
@@ -2233,8 +2519,14 @@ function loadFriendRequests() {
           </div>
         `;
         
-        requestsList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all request items to be created
+      const requestElements = await Promise.all(requestPromises);
+      
+      // Append all elements at once
+      requestElements.forEach(div => requestsList.appendChild(div));
     });
 }
 
@@ -2246,7 +2538,7 @@ function loadOutgoingRequests() {
   db.collection('friendRequests')
     .where('fromUserId', '==', currentUser.uid)
     .where('status', '==', 'pending')
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       if (snapshot.empty) {
         outgoingList.innerHTML = '<p class="no-content">No outgoing friend requests.</p>';
         return;
@@ -2254,7 +2546,8 @@ function loadOutgoingRequests() {
       
       outgoingList.innerHTML = '';
       
-      snapshot.docs.forEach(async (doc) => {
+      // Use Promise.all to properly wait for all async operations
+      const outgoingPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         
         // Get recipient data for tier and role
@@ -2292,8 +2585,14 @@ function loadOutgoingRequests() {
           </div>
         `;
         
-        outgoingList.appendChild(div);
+        return div;
       });
+      
+      // Wait for all outgoing request items to be created
+      const outgoingElements = await Promise.all(outgoingPromises);
+      
+      // Append all elements at once
+      outgoingElements.forEach(div => outgoingList.appendChild(div));
     });
 }
 
@@ -2525,11 +2824,17 @@ function initAdminPage() {
 // ADMIN SLIP REQUESTS
 // ============================================================================
 
+// Store all slip requests for client-side filtering
+let allSlipRequestsCache = [];
+
 function initAdminSlipRequests() {
   const list = document.getElementById("admin-slip-requests-list");
   if (!list || !currentUser || !currentUserDoc || currentUserDoc.role !== "admin") {
     return;
   }
+
+  // Initialize filter controls
+  initAdminSlipRequestFilters();
 
   db.collection("slipRequests")
     .orderBy("createdAt", "desc")
@@ -2537,63 +2842,128 @@ function initAdminSlipRequests() {
     .onSnapshot((snapshot) => {
       if (snapshot.empty) {
         list.innerHTML = '<p class="no-content">No slip requests yet.</p>';
+        allSlipRequestsCache = [];
         return;
       }
 
-      list.innerHTML = "";
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const id = doc.id;
+      // Cache all slip requests with their IDs
+      allSlipRequestsCache = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-        const card = document.createElement("div");
-        card.className = "admin-slip-request-card";
-
-        const createdAt = data.createdAt?.toDate
-          ? data.createdAt.toDate().toLocaleString()
-          : "";
-
-        const status = data.status || "pending";
-        
-        // Prefer username over email when displaying requester
-        const requesterDisplay = data.username || data.userEmail || "Unknown";
-
-        card.innerHTML = `
-          <div class="admin-slip-request-meta">
-            <div><strong>${requesterDisplay}</strong> (${data.tier || ""})</div>
-            <div>Sport: ${data.sport || ""}</div>
-            <div>Created: ${createdAt}</div>
-            <div>Status: <span class="status-${status}">${status}</span></div>
-          </div>
-          <p class="admin-slip-request-text">${data.requestText || ""}</p>
-          <div class="admin-slip-request-actions">
-            ${
-              status === "pending"
-                ? `
-                  <textarea class="admin-slip-response-input" data-id="${id}"
-                    placeholder="Type your slip or response to send to this user"></textarea>
-                  <div style="margin: 0.5rem 0;">
-                    <label for="admin-slip-attachment-${id}" class="btn btn-outline btn-sm">📎 Attach Image</label>
-                    <input type="file" id="admin-slip-attachment-${id}" class="admin-slip-attachment" data-id="${id}" accept="image/*" style="display: none;">
-                    <span class="admin-slip-attachment-name" data-id="${id}" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
-                  </div>
-                  <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
-                  <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
-                `
-                : data.responseSlip || data.responseAttachmentUrl
-                ? `
-                  <p><strong>Response:</strong> ${data.responseSlip || ""}</p>
-                  ${data.responseAttachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${data.responseAttachmentUrl}" alt="Response attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${data.responseAttachmentUrl}', '_blank')"></div>` : ''}
-                `
-                : ""
-            }
-          </div>
-        `;
-
-        list.appendChild(card);
-      });
-
-      attachSlipRequestHandlers();
+      // Apply current filters
+      applyAdminSlipRequestFilters();
     });
+}
+
+function initAdminSlipRequestFilters() {
+  const filterTier = document.getElementById("filter-tier");
+  const filterSport = document.getElementById("filter-sport");
+  const filterStatus = document.getElementById("filter-status");
+  const clearFilters = document.getElementById("clear-filters");
+
+  if (filterTier) {
+    filterTier.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (filterSport) {
+    filterSport.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (filterStatus) {
+    filterStatus.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (clearFilters) {
+    clearFilters.addEventListener("click", () => {
+      if (filterTier) filterTier.value = "all";
+      if (filterSport) filterSport.value = "all";
+      if (filterStatus) filterStatus.value = "all";
+      applyAdminSlipRequestFilters();
+    });
+  }
+}
+
+function applyAdminSlipRequestFilters() {
+  const list = document.getElementById("admin-slip-requests-list");
+  if (!list) return;
+
+  const filterTier = document.getElementById("filter-tier")?.value || "all";
+  const filterSport = document.getElementById("filter-sport")?.value || "all";
+  const filterStatus = document.getElementById("filter-status")?.value || "all";
+
+  let filteredRequests = allSlipRequestsCache;
+
+  // Apply tier filter
+  if (filterTier !== "all") {
+    filteredRequests = filteredRequests.filter(req => req.tier === filterTier);
+  }
+
+  // Apply sport filter
+  if (filterSport !== "all") {
+    filteredRequests = filteredRequests.filter(req => req.sport === filterSport);
+  }
+
+  // Apply status filter
+  if (filterStatus !== "all") {
+    filteredRequests = filteredRequests.filter(req => (req.status || "pending") === filterStatus);
+  }
+
+  if (filteredRequests.length === 0) {
+    list.innerHTML = '<p class="no-content">No slip requests match the selected filters.</p>';
+    return;
+  }
+
+  // Render filtered requests
+  list.innerHTML = "";
+  filteredRequests.forEach((data) => {
+    const id = data.id;
+    const card = document.createElement("div");
+    card.className = "admin-slip-request-card";
+
+    const createdAt = data.createdAt?.toDate
+      ? data.createdAt.toDate().toLocaleString()
+      : "";
+
+    const status = data.status || "pending";
+    
+    // Prefer username over email when displaying requester
+    const requesterDisplay = data.username || data.userEmail || "Unknown";
+
+    card.innerHTML = `
+      <div class="admin-slip-request-meta">
+        <div><strong>${requesterDisplay}</strong> (${data.tier || ""})</div>
+        <div>Sport: ${data.sport || ""}</div>
+        <div>Created: ${createdAt}</div>
+        <div>Status: <span class="status-${status}">${status}</span></div>
+      </div>
+      <p class="admin-slip-request-text">${data.requestText || ""}</p>
+      <div class="admin-slip-request-actions">
+        ${
+          status === "pending"
+            ? `
+              <textarea class="admin-slip-response-input" data-id="${id}"
+                placeholder="Type your slip or response to send to this user"></textarea>
+              <div style="margin: 0.5rem 0;">
+                <label for="admin-slip-attachment-${id}" class="btn btn-outline btn-sm">📎 Attach Image</label>
+                <input type="file" id="admin-slip-attachment-${id}" class="admin-slip-attachment" data-id="${id}" accept="image/*" style="display: none;">
+                <span class="admin-slip-attachment-name" data-id="${id}" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
+              </div>
+              <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
+              <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
+            `
+            : data.responseSlip || data.responseAttachmentUrl
+            ? `
+              <p><strong>Response:</strong> ${data.responseSlip || ""}</p>
+              ${data.responseAttachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${data.responseAttachmentUrl}" alt="Response attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${data.responseAttachmentUrl}', '_blank')"></div>` : ''}
+            `
+            : ""
+        }
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
+
+  attachSlipRequestHandlers();
 }
 
 function attachSlipRequestHandlers() {

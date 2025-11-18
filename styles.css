@@ -1074,23 +1074,29 @@ a:hover {
 }
 
 .badge-tier-starter {
-    background: rgba(100, 100, 100, 0.3);
-    color: var(--text-secondary);
+    background: linear-gradient(135deg, rgba(77, 184, 255, 0.2), rgba(77, 184, 255, 0.4));
+    color: var(--tier-starter);
+    border: 1px solid rgba(77, 184, 255, 0.5);
+    text-shadow: 0 0 5px rgba(77, 184, 255, 0.3);
 }
 
 .badge-tier-pro {
-    background: rgba(0, 136, 255, 0.3);
-    color: #4da6ff;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.4));
+    color: var(--tier-pro);
+    border: 1px solid rgba(0, 255, 136, 0.5);
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
 }
 
 .badge-tier-vip {
-    background: rgba(255, 215, 0, 0.3);
-    color: #ffd700;
+    background: linear-gradient(135deg, rgba(255, 170, 0, 0.2), rgba(255, 170, 0, 0.4));
+    color: var(--tier-vip);
+    border: 1px solid rgba(255, 170, 0, 0.5);
+    text-shadow: 0 0 5px rgba(255, 170, 0, 0.3);
 }
 
 /* Role Badge Styles */
 .badge-role-admin {
-    background: var(--danger);
+    background: linear-gradient(135deg, var(--danger), #ff6666);
     color: white;
     padding: 0.2rem 0.6rem;
     border-radius: 12px;
@@ -1098,6 +1104,9 @@ a:hover {
     font-weight: bold;
     display: inline-block;
     margin-left: 0.3rem;
+    border: 1px solid rgba(255, 68, 68, 0.6);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Bot Author Badge */
@@ -1194,6 +1203,26 @@ a:hover {
     cursor: pointer;
 }
 
+.content-feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.tier-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tier-filter-controls label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 .filter-controls {
     margin-bottom: 1.5rem;
 }
@@ -1205,6 +1234,42 @@ a:hover {
     border-radius: 6px;
     color: var(--text-primary);
     cursor: pointer;
+}
+
+/* Admin Filters */
+.admin-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .admin-filters {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
 }
 
 /* Messages */
@@ -2236,4 +2301,123 @@ footer {
     .feed-items-container {
         max-height: 400px;
     }
+}
+
+/* Navigation Notification Pills */
+.nav-pill-alert {
+    display: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--danger);
+    position: relative;
+    top: -5px;
+    margin-left: 4px;
+}
+
+.nav-pill-alert--active {
+    display: inline-block;
+}
+
+/* Inbox-specific notification styling */
+.nav-item {
+    position: relative;
+}
+
+.inbox-title-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Slip Request History */
+.slip-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.slip-request-history-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.slip-request-history-item:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+}
+
+.slip-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.slip-request-sport {
+    color: var(--accent-green);
+    font-size: 1.1rem;
+}
+
+.slip-request-status {
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-answered {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 255, 136, 0.4);
+}
+
+.status-declined {
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid rgba(255, 68, 68, 0.4);
+}
+
+.status-pending {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(255, 170, 0, 0.4);
+}
+
+.slip-request-details {
+    margin-bottom: 0.5rem;
+}
+
+.slip-request-summary {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.slip-request-meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.slip-request-response {
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 0.75rem;
+    border-left: 3px solid var(--accent-green);
+}
+
+.slip-request-response strong {
+    color: var(--accent-green);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.slip-request-response p {
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
 }

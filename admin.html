@@ -14,7 +14,7 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="plans.html">Plans</a></li>
                 <li><a href="portal.html">Portal</a></li>
-                <li><a href="inbox.html" id="inbox-link" class="hidden">Inbox</a></li>
+                <li><a href="inbox.html" id="inbox-link" class="hidden nav-item">Inbox<span class="nav-pill-alert" id="nav-inbox-alert-pill"></span></a></li>
                 <li><a href="account.html" id="account-link" class="hidden">Account</a></li>
                 <li><a href="admin.html" class="active" id="admin-link">Admin</a></li>
                 <li><button id="logout-button" class="btn btn-primary hidden">Log Out</button></li>
@@ -137,6 +137,44 @@
                     <div id="slip-requests-tab" class="tab-content">
                         <div class="admin-card">
                             <h2>Slip Requests</h2>
+                            
+                            <!-- Filter Controls -->
+                            <div class="admin-filters">
+                                <div class="filter-group">
+                                    <label for="filter-tier">Filter by Tier:</label>
+                                    <select id="filter-tier" class="filter-select">
+                                        <option value="all">All Tiers</option>
+                                        <option value="pro">Pro</option>
+                                        <option value="vip">VIP</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filter-sport">Filter by Sport:</label>
+                                    <select id="filter-sport" class="filter-select">
+                                        <option value="all">All Sports</option>
+                                        <option value="NBA">NBA</option>
+                                        <option value="NFL">NFL</option>
+                                        <option value="NHL">NHL</option>
+                                        <option value="MLB">MLB</option>
+                                        <option value="UCL">UCL</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filter-status">Filter by Status:</label>
+                                    <select id="filter-status" class="filter-select">
+                                        <option value="all">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="answered">Answered</option>
+                                        <option value="declined">Declined</option>
+                                    </select>
+                                </div>
+                                
+                                <button id="clear-filters" class="btn btn-outline btn-sm">Clear Filters</button>
+                            </div>
+                            
                             <div id="admin-slip-requests-list"></div>
                         </div>
                     </div>
