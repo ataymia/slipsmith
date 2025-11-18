@@ -2237,3 +2237,30 @@ footer {
         max-height: 400px;
     }
 }
+
+/* Navigation Notification Pills */
+.nav-pill-alert {
+    display: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--danger);
+    position: relative;
+    top: -5px;
+    margin-left: 4px;
+}
+
+.nav-pill-alert--active {
+    display: inline-block;
+}
+
+/* Inbox-specific notification styling */
+.nav-item {
+    position: relative;
+}
+
+.inbox-title-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

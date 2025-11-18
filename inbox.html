@@ -14,7 +14,7 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="plans.html">Plans</a></li>
                 <li><a href="portal.html">Portal</a></li>
-                <li><a href="inbox.html" class="active" id="inbox-link">Inbox</a></li>
+                <li><a href="inbox.html" class="active nav-item" id="inbox-link">Inbox<span class="nav-pill-alert" id="nav-inbox-alert-pill"></span></a></li>
                 <li><a href="account.html" id="account-link" class="hidden">Account</a></li>
                 <li><a href="admin.html" id="admin-link" class="hidden">Admin</a></li>
                 <li><button id="logout-button" class="btn btn-primary hidden">Log Out</button></li>
@@ -32,7 +32,10 @@
 
                 <div id="inbox-content" style="display: none;">
                     <div class="inbox-card">
-                        <h1>Your Inbox</h1>
+                        <div class="inbox-title-container">
+                            <h1>Your Inbox</h1>
+                            <span class="nav-pill-alert" id="inbox-header-alert-pill"></span>
+                        </div>
 
                         <!-- Inbox Navigation Tabs -->
                         <div class="inbox-tabs">

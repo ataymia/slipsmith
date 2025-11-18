@@ -385,11 +385,91 @@ auth.onAuthStateChanged(async (user) => {
     } else {
       initPublicPage(page);
     }
+    // Initialize inbox notification markers if user is authenticated
+    if (currentUser && currentUserDoc) {
+      initInboxNotificationMarkers();
+    }
   } catch (err) {
     logDebug('error fetching user profile', { err });
     console.error("Error fetching user profile:", err);
   }
 });
+
+// ============================================================================
+// INBOX NOTIFICATION MARKERS
+// ============================================================================
+
+let inboxAlertState = {
+  hasNewMessages: false,
+  hasPendingFriendRequests: false
+};
+
+// Unsubscribe functions for cleanup
+let inboxAlertUnsubscribers = [];
+
+function initInboxNotificationMarkers() {
+  if (!currentUser || !currentUserDoc) return;
+  
+  // Clean up any existing listeners
+  inboxAlertUnsubscribers.forEach(unsub => unsub());
+  inboxAlertUnsubscribers = [];
+  
+  const lastSeenInbox = currentUserDoc.lastSeenInbox || null;
+  
+  // Listener for new messages
+  const messagesUnsub = db.collection('inboxMessages')
+    .where('toUserId', '==', currentUser.uid)
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .onSnapshot(snapshot => {
+      let hasNewMessages = false;
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.createdAt) return;
+        
+        // Check if message is newer than lastSeenInbox
+        if (!lastSeenInbox || data.createdAt.toMillis() > lastSeenInbox.toMillis()) {
+          hasNewMessages = true;
+        }
+      });
+      
+      updateInboxMarker({ hasNewMessages });
+    });
+  
+  inboxAlertUnsubscribers.push(messagesUnsub);
+  
+  // Listener for pending friend requests
+  const friendReqUnsub = db.collection('friendRequests')
+    .where('toUserId', '==', currentUser.uid)
+    .where('status', '==', 'pending')
+    .onSnapshot(snapshot => {
+      const hasPendingFriendRequests = !snapshot.empty;
+      updateInboxMarker({ hasPendingFriendRequests });
+    });
+  
+  inboxAlertUnsubscribers.push(friendReqUnsub);
+}
+
+function updateInboxMarker(partial) {
+  inboxAlertState = { ...inboxAlertState, ...partial };
+  
+  const hasAlert =
+    inboxAlertState.hasNewMessages ||
+    inboxAlertState.hasPendingFriendRequests;
+  
+  const navPill = document.getElementById('nav-inbox-alert-pill');
+  const headerPill = document.getElementById('inbox-header-alert-pill');
+  
+  [navPill, headerPill].forEach(el => {
+    if (!el) return;
+    if (hasAlert) {
+      el.classList.add('nav-pill-alert--active');
+    } else {
+      el.classList.remove('nav-pill-alert--active');
+    }
+  });
+}
 
 // ============================================================================
 // LOGIN PAGE (USERNAME + TEMP PASSWORD HANDLING)
@@ -1577,6 +1657,23 @@ function initInboxPage() {
 
   if (authRequired) authRequired.style.display = "none";
   if (inboxContent) inboxContent.style.display = "block";
+
+  // Update lastSeenInbox timestamp
+  db.collection('users')
+    .doc(currentUser.uid)
+    .update({
+      lastSeenInbox: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      console.log('[Inbox] Updated lastSeenInbox timestamp');
+      // Update the local copy
+      if (currentUserDoc) {
+        currentUserDoc.lastSeenInbox = firebase.firestore.Timestamp.now();
+      }
+    })
+    .catch(err => {
+      console.error('[Inbox] Error updating lastSeenInbox:', err);
+    });
 
   // Update presence on page load
   updatePresence();
