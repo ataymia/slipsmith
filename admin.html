@@ -137,6 +137,44 @@
                     <div id="slip-requests-tab" class="tab-content">
                         <div class="admin-card">
                             <h2>Slip Requests</h2>
+                            
+                            <!-- Filter Controls -->
+                            <div class="admin-filters">
+                                <div class="filter-group">
+                                    <label for="filter-tier">Filter by Tier:</label>
+                                    <select id="filter-tier" class="filter-select">
+                                        <option value="all">All Tiers</option>
+                                        <option value="pro">Pro</option>
+                                        <option value="vip">VIP</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filter-sport">Filter by Sport:</label>
+                                    <select id="filter-sport" class="filter-select">
+                                        <option value="all">All Sports</option>
+                                        <option value="NBA">NBA</option>
+                                        <option value="NFL">NFL</option>
+                                        <option value="NHL">NHL</option>
+                                        <option value="MLB">MLB</option>
+                                        <option value="UCL">UCL</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filter-status">Filter by Status:</label>
+                                    <select id="filter-status" class="filter-select">
+                                        <option value="all">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="answered">Answered</option>
+                                        <option value="declined">Declined</option>
+                                    </select>
+                                </div>
+                                
+                                <button id="clear-filters" class="btn btn-outline btn-sm">Clear Filters</button>
+                            </div>
+                            
                             <div id="admin-slip-requests-list"></div>
                         </div>
                     </div>

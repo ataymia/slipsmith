@@ -2824,11 +2824,17 @@ function initAdminPage() {
 // ADMIN SLIP REQUESTS
 // ============================================================================
 
+// Store all slip requests for client-side filtering
+let allSlipRequestsCache = [];
+
 function initAdminSlipRequests() {
   const list = document.getElementById("admin-slip-requests-list");
   if (!list || !currentUser || !currentUserDoc || currentUserDoc.role !== "admin") {
     return;
   }
+
+  // Initialize filter controls
+  initAdminSlipRequestFilters();
 
   db.collection("slipRequests")
     .orderBy("createdAt", "desc")
@@ -2836,63 +2842,128 @@ function initAdminSlipRequests() {
     .onSnapshot((snapshot) => {
       if (snapshot.empty) {
         list.innerHTML = '<p class="no-content">No slip requests yet.</p>';
+        allSlipRequestsCache = [];
         return;
       }
 
-      list.innerHTML = "";
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const id = doc.id;
+      // Cache all slip requests with their IDs
+      allSlipRequestsCache = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-        const card = document.createElement("div");
-        card.className = "admin-slip-request-card";
-
-        const createdAt = data.createdAt?.toDate
-          ? data.createdAt.toDate().toLocaleString()
-          : "";
-
-        const status = data.status || "pending";
-        
-        // Prefer username over email when displaying requester
-        const requesterDisplay = data.username || data.userEmail || "Unknown";
-
-        card.innerHTML = `
-          <div class="admin-slip-request-meta">
-            <div><strong>${requesterDisplay}</strong> (${data.tier || ""})</div>
-            <div>Sport: ${data.sport || ""}</div>
-            <div>Created: ${createdAt}</div>
-            <div>Status: <span class="status-${status}">${status}</span></div>
-          </div>
-          <p class="admin-slip-request-text">${data.requestText || ""}</p>
-          <div class="admin-slip-request-actions">
-            ${
-              status === "pending"
-                ? `
-                  <textarea class="admin-slip-response-input" data-id="${id}"
-                    placeholder="Type your slip or response to send to this user"></textarea>
-                  <div style="margin: 0.5rem 0;">
-                    <label for="admin-slip-attachment-${id}" class="btn btn-outline btn-sm">📎 Attach Image</label>
-                    <input type="file" id="admin-slip-attachment-${id}" class="admin-slip-attachment" data-id="${id}" accept="image/*" style="display: none;">
-                    <span class="admin-slip-attachment-name" data-id="${id}" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
-                  </div>
-                  <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
-                  <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
-                `
-                : data.responseSlip || data.responseAttachmentUrl
-                ? `
-                  <p><strong>Response:</strong> ${data.responseSlip || ""}</p>
-                  ${data.responseAttachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${data.responseAttachmentUrl}" alt="Response attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${data.responseAttachmentUrl}', '_blank')"></div>` : ''}
-                `
-                : ""
-            }
-          </div>
-        `;
-
-        list.appendChild(card);
-      });
-
-      attachSlipRequestHandlers();
+      // Apply current filters
+      applyAdminSlipRequestFilters();
     });
+}
+
+function initAdminSlipRequestFilters() {
+  const filterTier = document.getElementById("filter-tier");
+  const filterSport = document.getElementById("filter-sport");
+  const filterStatus = document.getElementById("filter-status");
+  const clearFilters = document.getElementById("clear-filters");
+
+  if (filterTier) {
+    filterTier.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (filterSport) {
+    filterSport.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (filterStatus) {
+    filterStatus.addEventListener("change", applyAdminSlipRequestFilters);
+  }
+  if (clearFilters) {
+    clearFilters.addEventListener("click", () => {
+      if (filterTier) filterTier.value = "all";
+      if (filterSport) filterSport.value = "all";
+      if (filterStatus) filterStatus.value = "all";
+      applyAdminSlipRequestFilters();
+    });
+  }
+}
+
+function applyAdminSlipRequestFilters() {
+  const list = document.getElementById("admin-slip-requests-list");
+  if (!list) return;
+
+  const filterTier = document.getElementById("filter-tier")?.value || "all";
+  const filterSport = document.getElementById("filter-sport")?.value || "all";
+  const filterStatus = document.getElementById("filter-status")?.value || "all";
+
+  let filteredRequests = allSlipRequestsCache;
+
+  // Apply tier filter
+  if (filterTier !== "all") {
+    filteredRequests = filteredRequests.filter(req => req.tier === filterTier);
+  }
+
+  // Apply sport filter
+  if (filterSport !== "all") {
+    filteredRequests = filteredRequests.filter(req => req.sport === filterSport);
+  }
+
+  // Apply status filter
+  if (filterStatus !== "all") {
+    filteredRequests = filteredRequests.filter(req => (req.status || "pending") === filterStatus);
+  }
+
+  if (filteredRequests.length === 0) {
+    list.innerHTML = '<p class="no-content">No slip requests match the selected filters.</p>';
+    return;
+  }
+
+  // Render filtered requests
+  list.innerHTML = "";
+  filteredRequests.forEach((data) => {
+    const id = data.id;
+    const card = document.createElement("div");
+    card.className = "admin-slip-request-card";
+
+    const createdAt = data.createdAt?.toDate
+      ? data.createdAt.toDate().toLocaleString()
+      : "";
+
+    const status = data.status || "pending";
+    
+    // Prefer username over email when displaying requester
+    const requesterDisplay = data.username || data.userEmail || "Unknown";
+
+    card.innerHTML = `
+      <div class="admin-slip-request-meta">
+        <div><strong>${requesterDisplay}</strong> (${data.tier || ""})</div>
+        <div>Sport: ${data.sport || ""}</div>
+        <div>Created: ${createdAt}</div>
+        <div>Status: <span class="status-${status}">${status}</span></div>
+      </div>
+      <p class="admin-slip-request-text">${data.requestText || ""}</p>
+      <div class="admin-slip-request-actions">
+        ${
+          status === "pending"
+            ? `
+              <textarea class="admin-slip-response-input" data-id="${id}"
+                placeholder="Type your slip or response to send to this user"></textarea>
+              <div style="margin: 0.5rem 0;">
+                <label for="admin-slip-attachment-${id}" class="btn btn-outline btn-sm">📎 Attach Image</label>
+                <input type="file" id="admin-slip-attachment-${id}" class="admin-slip-attachment" data-id="${id}" accept="image/*" style="display: none;">
+                <span class="admin-slip-attachment-name" data-id="${id}" style="margin-left: 0.5rem; font-size: 0.9rem; color: var(--text-muted);"></span>
+              </div>
+              <button class="admin-slip-accept btn btn-primary" data-id="${id}">Accept & Send</button>
+              <button class="admin-slip-reject btn btn-outline" data-id="${id}">Reject</button>
+            `
+            : data.responseSlip || data.responseAttachmentUrl
+            ? `
+              <p><strong>Response:</strong> ${data.responseSlip || ""}</p>
+              ${data.responseAttachmentUrl ? `<div style="margin-top: 0.5rem;"><img src="${data.responseAttachmentUrl}" alt="Response attachment" style="max-width: 100%; border-radius: 4px; cursor: pointer;" onclick="window.open('${data.responseAttachmentUrl}', '_blank')"></div>` : ''}
+            `
+            : ""
+        }
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
+
+  attachSlipRequestHandlers();
 }
 
 function attachSlipRequestHandlers() {
