@@ -15,7 +15,12 @@
     "events:nfl": "ts-node src/cli.ts events --sport nfl --date today",
     "evaluate": "ts-node src/cli.ts evaluate --date yesterday"
   },
-  "keywords": ["sports", "projections", "betting", "analytics"],
+  "keywords": [
+    "sports",
+    "projections",
+    "betting",
+    "analytics"
+  ],
   "author": "SlipSmith",
   "license": "ISC",
   "description": "Multi-sport projection engine for generating box score projections and identifying high-edge events",
@@ -35,6 +40,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "firebase-admin": "^12.7.0",
     "uuid": "^13.0.0"
   }
 }
