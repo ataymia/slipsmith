@@ -122,10 +122,23 @@ GET  /health
 GET  /api/sports
 GET  /api/schedule/:league/:date
 GET  /api/projections/:league/:date
-GET  /api/events/:league/:date
+GET  /api/events/:league/:date         (legacy format)
+GET  /api/top-events                   (SlipSmith export format)
 POST /api/evaluate/:date
 GET  /api/summary
 GET  /api/reliability
+```
+
+### 6. Slip Service (`src/engine/SlipService.ts`)
+
+High-level service for generating slips in the official SlipSmith export format.
+
+```typescript
+class SlipService {
+  getTopEvents(options: GetTopEventsOptions): Promise<SlipSmithSlip>;
+  getSupportedSports(): Record<Sport, League[]>;
+  close(): void;
+}
 ```
 
 ---
@@ -493,3 +506,104 @@ projection-engine/
 ├── tsconfig.json
 └── README.md
 ```
+
+---
+
+## SlipSmith Export Format
+
+This section documents the official SlipSmith JSON export format that all consumers (frontends, bots, PDF generators) can safely rely on.
+
+### JSON Schema
+
+```json
+{
+  "slip_id": "NBA_2025_12_01_VIP",
+  "date": "2025-12-01",
+  "sport": "NBA",
+  "tier": "vip",
+  "warning": "Optional note about data limits or caveats.",
+  "events": [
+    {
+      "event_id": "nba_suns_lakers_reaves_ra8_5_over_20251201",
+      "game_id": "PHX@LAL",
+      "time": "TBD",
+      "player": "Austin Reaves",
+      "team": "LAL",
+      "market": "rebounds+assists",
+      "line": 8.5,
+      "direction": "over",
+      "probability": "83%",
+      "reasoning": "Short natural-language explanation of why this edge exists."
+    }
+  ]
+}
+```
+
+### Schema Rules
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slip_id` | string | Format: `<SPORT>_<YYYY>_<MM>_<DD>_<TIER>` |
+| `date` | string | ISO date format: `YYYY-MM-DD` |
+| `sport` | string | Upper-case sport/league identifier |
+| `tier` | string | One of: `"starter"`, `"pro"`, `"vip"` |
+| `warning` | string? | Optional warning or caveat |
+| `events` | array | Array of SlipEvent objects |
+
+### Event Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_id` | string | Unique identifier for the event |
+| `game_id` | string | Game identifier |
+| `time` | string | Game start time or `"TBD"` |
+| `player` | string | Player name (or team name for team props) |
+| `team` | string | Team name |
+| `market` | string | Market type (e.g., `"points"`, `"rebounds+assists"`) |
+| `line` | number | Numeric line value |
+| `direction` | string | `"over"` or `"under"` |
+| `probability` | string | Percentage with `%` suffix (e.g., `"83%"`) |
+| `reasoning` | string | Natural-language explanation |
+
+### API Endpoint
+
+```
+GET /api/top-events?date=YYYY-MM-DD&sport=NBA&tier=vip
+```
+
+**Parameters:**
+- `date` (required): Date in YYYY-MM-DD format
+- `sport` (required): Sport/league identifier (e.g., "NBA", "NFL")
+- `tier` (optional): "starter", "pro", or "vip" (default: "starter")
+- `limit` (optional): Maximum events to return (default: 20)
+- `minProbability` (optional): Minimum probability filter 0-1 (default: 0.5)
+
+### Programmatic Access
+
+```typescript
+import { getTopEvents } from 'slipsmith-projection-engine';
+
+const slip = await getTopEvents({
+  date: '2025-12-01',
+  sport: 'NBA',
+  tier: 'vip',
+  limit: 10,
+});
+
+console.log(JSON.stringify(slip, null, 2));
+```
+
+### Tiers
+
+- **starter**: Entry-level events, broader selection
+- **pro**: Higher confidence events
+- **vip**: Premium events with highest edge scores
+
+### Contract Guarantee
+
+The structure and key names in this schema are **stable and will not change**. Consumers can safely rely on:
+- All key names remaining unchanged
+- `probability` always being a string with `%` suffix
+- `line` always being numeric
+- `direction` being `"over"` or `"under"`
+- `time` defaulting to `"TBD"` when unavailable

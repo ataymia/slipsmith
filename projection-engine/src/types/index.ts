@@ -349,3 +349,44 @@ export interface EvaluationResponse {
     hitRate: number;
   };
 }
+
+// =============================================================================
+// SLIPSMITH EXPORT FORMAT
+// =============================================================================
+
+/**
+ * Tier levels for SlipSmith slips
+ */
+export type SlipTier = 'starter' | 'pro' | 'vip';
+
+/**
+ * SlipSmith Event - the official export format for individual events
+ * This is the standard format for all SlipSmith event outputs.
+ */
+export interface SlipEvent {
+  event_id: string;
+  game_id: string;
+  time: string;
+  player: string;
+  team: string;
+  market: string;
+  line: number;
+  direction: string;
+  probability: string; // Must be string with % suffix (e.g., "83%")
+  reasoning: string;
+}
+
+/**
+ * SlipSmith Slip - the official JSON export format for top events
+ * 
+ * This is the standard format that any consumer (frontends, bots, PDF generator)
+ * can safely rely on. The structure and key names must not change.
+ */
+export interface SlipSmithSlip {
+  slip_id: string;
+  date: string;
+  sport: string;
+  tier: SlipTier;
+  warning?: string;
+  events: SlipEvent[];
+}

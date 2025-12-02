@@ -57,18 +57,24 @@ console.log(`
 ╚══════════════════════════════════════════════════════════════╝
 
 API Endpoints:
-  GET  /health                        - Health check
-  GET  /api/sports                    - Get supported sports and leagues
-  GET  /api/schedule/:league/:date    - Get schedule for a date
-  GET  /api/projections/:league/:date - Generate projections
-  GET  /api/events/:league/:date      - Get top events (edges)
-  POST /api/evaluate/:date            - Evaluate past predictions
-  GET  /api/summary                   - Get evaluation summary
-  GET  /api/reliability               - Get reliability report
+  GET  /health                            - Health check
+  GET  /api/sports                        - Get supported sports and leagues
+  GET  /api/schedule/:league/:date        - Get schedule for a date
+  GET  /api/projections/:league/:date     - Generate projections
+  GET  /api/events/:league/:date          - Get top events (legacy format)
+  GET  /api/top-events?date=...&sport=... - Get top events (SlipSmith format)
+  POST /api/evaluate/:date                - Evaluate past predictions
+  GET  /api/summary                       - Get evaluation summary
+  GET  /api/reliability                   - Get reliability report
 
 Example:
   curl http://localhost:${port}/api/projections/NBA/2024-01-15
-  curl http://localhost:${port}/api/events/NFL/2024-01-14
+  curl "http://localhost:${port}/api/top-events?date=2024-01-15&sport=NBA&tier=vip"
 `);
 
 export { createApiServer };
+
+// Re-export SlipService for programmatic access
+export { SlipService, getTopEvents } from './engine';
+export type { GetTopEventsOptions, SlipServiceConfig } from './engine';
+export type { SlipSmithSlip, SlipEvent, SlipTier } from './types';

@@ -229,6 +229,53 @@ Response:
 }
 ```
 
+### Get Top Events (SlipSmith Export Format)
+
+**This is the preferred endpoint for external consumers.**
+
+```
+GET /api/top-events?date=YYYY-MM-DD&sport=NBA&tier=vip
+```
+
+Parameters:
+- `date` (required): Date in YYYY-MM-DD format
+- `sport` (required): Sport/league identifier (e.g., "NBA", "NFL")
+- `tier` (optional): "starter", "pro", or "vip" (default: "starter")
+- `limit` (optional): Maximum events to return (default: 20)
+- `minProbability` (optional): Minimum probability filter 0-1 (default: 0.5)
+
+Example:
+```bash
+curl "http://localhost:3001/api/top-events?date=2024-01-15&sport=NBA&tier=vip"
+```
+
+Response:
+```json
+{
+  "slip_id": "NBA_2024_01_15_VIP",
+  "date": "2024-01-15",
+  "sport": "NBA",
+  "tier": "vip",
+  "events": [
+    {
+      "event_id": "nba_game_123_curry_points27_5_over_20240115",
+      "game_id": "game_123",
+      "time": "TBD",
+      "player": "Stephen Curry",
+      "team": "Warriors",
+      "market": "points",
+      "line": 27.5,
+      "direction": "over",
+      "probability": "72%",
+      "reasoning": "Stephen Curry projected for 31.2 points, line set at 27.5. Strong over opportunity with 3.7 unit edge."
+    }
+  ]
+}
+```
+
+**Note:** The `probability` field is a string with `%` suffix in this format.
+```
+
 ### Run Evaluation
 
 ```
@@ -336,6 +383,42 @@ The projection engine can feed into the main SlipSmith admin tool:
 1. Generate projections via API
 2. Get top events formatted as slip JSON
 3. Post to content feed via admin tool
+
+### Programmatic Usage
+
+```typescript
+import { getTopEvents, SlipService } from 'slipsmith-projection-engine';
+
+// Quick usage with factory function
+const slip = await getTopEvents({
+  date: '2025-12-01',
+  sport: 'NBA',
+  tier: 'vip',
+  limit: 10,
+});
+
+console.log(JSON.stringify(slip, null, 2));
+
+// Or with full service for multiple calls
+const service = new SlipService({
+  providerConfig: { useMockData: true },
+});
+
+const nbaSlip = await service.getTopEvents({
+  date: '2025-12-01',
+  sport: 'NBA',
+  tier: 'vip',
+});
+
+const nflSlip = await service.getTopEvents({
+  date: '2025-12-01',
+  sport: 'NFL',
+  tier: 'pro',
+});
+
+// Clean up when done
+service.close();
+```
 
 ---
 

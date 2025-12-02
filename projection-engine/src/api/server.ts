@@ -14,10 +14,17 @@ import {
   EventsResponse, 
   EvaluationResponse,
   ConsensusLine,
+  SlipSmithSlip,
+  SlipTier,
 } from '../types';
 import { ProviderFactory, ProviderConfig } from '../providers';
 import { ProjectionEngine, EdgeDetector } from '../engine';
 import { EvaluationEngine } from '../evaluation';
+import { 
+  buildSlipSmithSlip, 
+  normalizeTier,
+  isValidTier,
+} from '../utils/slipBuilder';
 
 export interface ApiConfig {
   port: number;
@@ -113,7 +120,7 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
     }
   });
   
-  // Get top events (edges)
+  // Get top events (edges) - Legacy endpoint
   app.get('/api/events/:league/:date', async (req: Request, res: Response) => {
     try {
       const { league, date } = req.params;
@@ -161,6 +168,101 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
       res.status(400).json({ 
         success: false, 
         error: error.message 
+      });
+    }
+  });
+  
+  /**
+   * Get Top Events - SlipSmith Export Format
+   * 
+   * Returns events in the official SlipSmith JSON schema.
+   * This is the preferred endpoint for external consumers.
+   * 
+   * Query Parameters:
+   * - date: YYYY-MM-DD format (required)
+   * - sport: Sport/League identifier (required, e.g., "NBA", "NFL")
+   * - tier: Tier level - "starter", "pro", or "vip" (optional, defaults to "starter")
+   * - limit: Maximum number of events to return (optional, defaults to 20)
+   * - minProbability: Minimum probability filter 0-1 (optional, defaults to 0.5)
+   */
+  app.get('/api/top-events', async (req: Request, res: Response) => {
+    try {
+      const date = req.query.date as string;
+      const sportQuery = req.query.sport as string;
+      const tierQuery = (req.query.tier as string) || 'starter';
+      const limit = parseInt(req.query.limit as string) || 20;
+      const minProbability = parseFloat(req.query.minProbability as string) || 0.5;
+      
+      // Validate required parameters
+      if (!date) {
+        return res.status(400).json({
+          error: 'Missing required parameter: date (format: YYYY-MM-DD)',
+        });
+      }
+      
+      if (!sportQuery) {
+        return res.status(400).json({
+          error: 'Missing required parameter: sport (e.g., NBA, NFL)',
+        });
+      }
+      
+      // Validate and normalize tier
+      const tier = normalizeTier(tierQuery);
+      
+      // Map sport query to league (sport query can be league identifier)
+      const league = sportQuery.toUpperCase() as League;
+      
+      // Get sport for this league
+      let sport: Sport;
+      try {
+        sport = providerFactory.getSportForLeague(league);
+      } catch {
+        return res.status(400).json({
+          error: `Unknown sport/league: ${sportQuery}`,
+        });
+      }
+      
+      // Generate projections
+      const projections = await projectionEngine.generateProjections(league, date);
+      
+      // Get consensus lines
+      const lines = generateMockLines(projections, league);
+      
+      // Get reliability scores
+      const reliabilityScores = evaluationEngine.getReliabilityScores(sport, league);
+      
+      // Find edges
+      let events = edgeDetector.findEdges(projections, lines, reliabilityScores);
+      
+      // Filter by probability
+      events = edgeDetector.filterByProbability(events, minProbability);
+      
+      // Get top events
+      events = edgeDetector.getTopEvents(events, limit);
+      
+      // Store for later evaluation
+      evaluationEngine.storeEvents(events);
+      
+      // Build warning message if using mock data
+      let warning: string | undefined;
+      if (fullConfig.providerConfig.useMockData) {
+        warning = 'Using mock data for demonstration. Connect real API providers for production use.';
+      }
+      
+      // Build SlipSmith Slip in official export format
+      const slip: SlipSmithSlip = buildSlipSmithSlip(
+        events,
+        date,
+        sport,
+        league,
+        tier,
+        warning
+      );
+      
+      res.json(slip);
+    } catch (error: any) {
+      res.status(400).json({
+        error: error.message,
       });
     }
   });
