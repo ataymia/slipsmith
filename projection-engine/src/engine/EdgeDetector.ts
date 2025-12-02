@@ -307,9 +307,10 @@ export class EdgeDetector {
    */
   private calculateProbability(edge: number, threshold: number, confidence?: number): number {
     // Use confidence to adjust uncertainty - lower confidence = wider distribution
-    // Confidence ranges from 0.5 to 1.0, so uncertainty factor ranges from 1.5 to 1.0
-    const modelConfidence = confidence ?? 0.8;
-    const uncertaintyFactor = 1 + (1 - modelConfidence);
+    // Clamp confidence to [0.5, 1.0] range to ensure valid uncertainty factor
+    const clampedConfidence = Math.max(0.5, Math.min(1.0, confidence ?? 0.8));
+    // Uncertainty factor ranges from 1.5 (low confidence) to 1.0 (high confidence)
+    const uncertaintyFactor = 1 + (1 - clampedConfidence);
     
     // Calculate z-score with adjusted threshold for uncertainty
     const adjustedThreshold = threshold * uncertaintyFactor;
@@ -318,14 +319,20 @@ export class EdgeDetector {
     // Calculate base probability using error function
     let probability = 0.5 + 0.5 * this.erf(zScore / Math.sqrt(2));
     
-    // Apply mild regression to mean for extreme probabilities
+    // Apply mild regression toward 0.5 for extreme probabilities
     // This accounts for model uncertainty and prevents overconfident predictions
-    // Extreme probabilities (>0.90 or <0.10) are regressed toward 0.5
-    const regressionStrength = 0.15; // How much to regress extreme probabilities
-    if (probability > 0.90) {
-      probability = 0.90 + (probability - 0.90) * (1 - regressionStrength);
-    } else if (probability < 0.10) {
-      probability = 0.10 - (0.10 - probability) * (1 - regressionStrength);
+    // 
+    // regressionStrength (0.15) represents how much extreme probabilities are pulled
+    // toward 0.5. This value was chosen to:
+    // - Provide meaningful adjustment without over-correcting
+    // - Cap effective max probability at ~0.96 instead of 1.0
+    // - Cap effective min probability at ~0.04 instead of 0.0
+    const regressionStrength = 0.15;
+    
+    // For probabilities above 0.90, regress toward 0.5
+    // Formula: newProb = 0.5 + (prob - 0.5) * (1 - regressionStrength)
+    if (probability > 0.90 || probability < 0.10) {
+      probability = 0.5 + (probability - 0.5) * (1 - regressionStrength);
     }
     
     return Math.round(probability * 100) / 100;
