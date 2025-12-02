@@ -105,12 +105,13 @@ export interface SummaryParams {
  * Check if mock mode is enabled
  */
 export function isMockMode(env: EnvBindings): boolean {
-  // Default to true if USE_MOCK_DATA is not set or set to 'true'
+  // Default to true if USE_MOCK_DATA is not set or is empty
   const useMockData = env.USE_MOCK_DATA;
-  if (useMockData === undefined || useMockData === '' || useMockData === 'true') {
+  if (useMockData === undefined || useMockData === null || useMockData === '') {
     return true;
   }
-  return useMockData.toLowerCase() === 'true';
+  // Only return false if explicitly set to 'false'
+  return useMockData.toLowerCase() !== 'false';
 }
 
 /**
