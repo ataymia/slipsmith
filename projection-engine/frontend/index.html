@@ -459,6 +459,11 @@
             opacity: 0.9;
         }
 
+        .connection-banner .help-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -531,7 +536,7 @@
                 <h4>⚠️ Server Not Connected</h4>
                 <p>The projection engine API server is not running. To start it, run this command in the <code>projection-engine</code> directory:</p>
                 <p><code>npm run dev</code></p>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">The server needs to be running on port 3001 for this dashboard to work.</p>
+                <p class="help-text">The server needs to be running on port 3001 for this dashboard to work.</p>
                 <button class="btn-retry" id="retry-connection">🔄 Retry Connection</button>
             </div>
 
@@ -693,16 +698,18 @@
         
         // Helper function to check if error is a connection error
         function isConnectionError(error) {
-            return error.message === 'Failed to fetch' || 
-                   error.name === 'TypeError' ||
-                   error.message.includes('NetworkError') ||
-                   error.message.includes('network');
+            // Check for specific fetch failure patterns
+            if (error.message === 'Failed to fetch') return true;
+            if (error.message.includes('NetworkError')) return true;
+            if (error.message.includes('Network request failed')) return true;
+            if (error.message.includes('net::ERR_CONNECTION_REFUSED')) return true;
+            return false;
         }
         
         // Get user-friendly error message
         function getErrorMessage(error) {
             if (isConnectionError(error)) {
-                return 'Cannot connect to the server. Please ensure the API server is running (npm run dev in the projection-engine directory).';
+                return 'Cannot connect to the server. See the banner above for instructions.';
             }
             return error.message || 'An unknown error occurred';
         }
