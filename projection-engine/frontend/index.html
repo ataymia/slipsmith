@@ -407,6 +407,58 @@
             margin-bottom: 1rem;
         }
 
+        .connection-banner {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(255, 170, 0, 0.15) 100%);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .connection-banner.visible {
+            display: block;
+        }
+
+        .connection-banner h4 {
+            color: var(--warning);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .connection-banner p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .connection-banner code {
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--accent-green);
+        }
+
+        .connection-banner .btn-retry {
+            margin-top: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: var(--warning);
+            border: none;
+            border-radius: 6px;
+            color: var(--bg-primary);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .connection-banner .btn-retry:hover {
+            opacity: 0.9;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -473,6 +525,14 @@
                 <button class="tab active" data-tab="projections">Projections</button>
                 <button class="tab" data-tab="events">Top Events</button>
                 <button class="tab" data-tab="summary">Summary</button>
+            </div>
+
+            <div id="connection-banner" class="connection-banner">
+                <h4>⚠️ Server Not Connected</h4>
+                <p>The projection engine API server is not running. To start it, run this command in the <code>projection-engine</code> directory:</p>
+                <p><code>npm run dev</code></p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">The server needs to be running on port 3001 for this dashboard to work.</p>
+                <button class="btn-retry" id="retry-connection">🔄 Retry Connection</button>
             </div>
 
             <div id="projections-tab" class="tab-content active">
@@ -575,6 +635,7 @@
             document.getElementById('events-btn').addEventListener('click', getEvents);
             document.getElementById('evaluate-btn').addEventListener('click', runEvaluation);
             document.getElementById('refresh-summary-btn').addEventListener('click', loadSummary);
+            document.getElementById('retry-connection').addEventListener('click', checkConnection);
             
             // Tabs
             document.querySelectorAll('.tab').forEach(tab => {
@@ -597,15 +658,53 @@
         }
         
         async function checkConnection() {
+            const banner = document.getElementById('connection-banner');
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const retryBtn = document.getElementById('retry-connection');
+            
+            // Show checking state
+            if (retryBtn) {
+                retryBtn.textContent = '⏳ Checking...';
+                retryBtn.disabled = true;
+            }
+            
             try {
                 const response = await fetch(`${API_BASE}/health`);
                 if (response.ok) {
-                    document.getElementById('status-dot').classList.add('connected');
-                    document.getElementById('status-text').textContent = 'Connected';
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                    banner.classList.remove('visible');
+                } else {
+                    throw new Error('Server returned non-OK response');
                 }
             } catch (error) {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                banner.classList.add('visible');
                 console.log('API not connected. Start the server with: npm run dev');
+            } finally {
+                if (retryBtn) {
+                    retryBtn.textContent = '🔄 Retry Connection';
+                    retryBtn.disabled = false;
+                }
             }
+        }
+        
+        // Helper function to check if error is a connection error
+        function isConnectionError(error) {
+            return error.message === 'Failed to fetch' || 
+                   error.name === 'TypeError' ||
+                   error.message.includes('NetworkError') ||
+                   error.message.includes('network');
+        }
+        
+        // Get user-friendly error message
+        function getErrorMessage(error) {
+            if (isConnectionError(error)) {
+                return 'Cannot connect to the server. Please ensure the API server is running (npm run dev in the projection-engine directory).';
+            }
+            return error.message || 'An unknown error occurred';
         }
         
         async function generateProjections() {
@@ -632,7 +731,12 @@
                 // Switch to projections tab
                 document.querySelector('.tab[data-tab="projections"]').click();
             } catch (error) {
-                content.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                const errorMsg = getErrorMessage(error);
+                content.innerHTML = `<div class="error">Error: ${errorMsg}</div>`;
+                // If connection error, show the banner and update status
+                if (isConnectionError(error)) {
+                    checkConnection();
+                }
             } finally {
                 btn.disabled = false;
                 loading.style.display = 'none';
@@ -725,7 +829,12 @@
                 // Switch to events tab
                 document.querySelector('.tab[data-tab="events"]').click();
             } catch (error) {
-                content.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                const errorMsg = getErrorMessage(error);
+                content.innerHTML = `<div class="error">Error: ${errorMsg}</div>`;
+                // If connection error, show the banner and update status
+                if (isConnectionError(error)) {
+                    checkConnection();
+                }
             } finally {
                 btn.disabled = false;
                 loading.style.display = 'none';
@@ -798,7 +907,12 @@
                     throw new Error(data.error || 'Evaluation failed');
                 }
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                const errorMsg = getErrorMessage(error);
+                alert(`Error: ${errorMsg}`);
+                // If connection error, show the banner and update status
+                if (isConnectionError(error)) {
+                    checkConnection();
+                }
             } finally {
                 btn.disabled = false;
             }
@@ -817,7 +931,13 @@
                         data.hitRate > 0 ? `${(data.hitRate * 100).toFixed(1)}%` : '-';
                 }
             } catch (error) {
-                console.log('Could not load summary');
+                // Silently handle summary load errors during initial load
+                // This is a background operation, so we don't want to spam the user
+                if (isConnectionError(error)) {
+                    console.log('Could not load summary - server not connected');
+                } else {
+                    console.log('Could not load summary:', error.message);
+                }
             }
         }
     </script>
