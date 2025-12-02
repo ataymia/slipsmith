@@ -180,8 +180,8 @@ export function buildSlipSmithSlip(
 ): SlipSmithSlip {
   const sportDisplay = getSportDisplay(sport, league);
   
-  // Sort events by edge score (descending)
-  const sortedEvents = [...events].sort((a, b) => b.edgeScore - a.edgeScore);
+  // Sort events by probability (descending) - highest probability first
+  const sortedEvents = [...events].sort((a, b) => b.probability - a.probability);
   
   return {
     slip_id: buildSlipId(sportDisplay, date, tier),
