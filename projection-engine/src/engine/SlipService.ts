@@ -20,6 +20,37 @@ import { EdgeDetector } from './EdgeDetector';
 import { EvaluationEngine } from '../evaluation';
 import { buildSlipSmithSlip } from '../utils/slipBuilder';
 
+// =============================================================================
+// SLIPSMITH PROBABILITY THRESHOLDS (Risk Gating)
+// =============================================================================
+// 🟢 GREEN: probability > 0.77 (high confidence picks)
+// 🟡 YELLOW: 0.60 <= probability <= 0.77 (moderate confidence picks)
+// 🔴 RED: probability < 0.60 (must NOT be included in slips)
+// =============================================================================
+
+/** Minimum probability threshold for SlipSmith slips (no red picks allowed) */
+export const SLIPSMITH_MIN_PROBABILITY = 0.60;
+
+/** Threshold above which events are considered "green" (high confidence) */
+export const GREEN_PROBABILITY_THRESHOLD = 0.77;
+
+/**
+ * Get the required minimum pick count by league.
+ * These minimums ensure meaningful slip coverage for each sport.
+ * 
+ * @param league - The league identifier
+ * @returns Minimum number of events to include if available
+ */
+export function getRequiredMinByLeague(league: League): number {
+  const minimums: Partial<Record<League, number>> = {
+    'NBA': 30,
+    'WNBA': 20,
+    'NFL': 15,
+    // NCAA_FB not specified, uses default
+  };
+  return minimums[league] ?? 20; // Default minimum for other leagues
+}
+
 /**
  * Options for getTopEvents function
  */
@@ -32,7 +63,7 @@ export interface GetTopEventsOptions {
   tier?: SlipTier;
   /** Maximum number of events to return (default: 20) */
   limit?: number;
-  /** Minimum probability filter 0-1 (default: 0.5) */
+  /** Minimum probability filter 0-1 (default: 0.60, clamped to at least 0.60) */
   minProbability?: number;
 }
 
@@ -81,6 +112,12 @@ export class SlipService {
    * This is the primary method for generating a SlipSmith slip.
    * Returns events in the official JSON schema that all consumers can rely on.
    * 
+   * SlipSmith Rules Applied:
+   * - Only events with probability >= 0.60 are included (no red picks)
+   * - Green events (> 0.77) are prioritized, then yellow events (0.60-0.77)
+   * - Sport-specific minimum pick counts are enforced (NBA: 30, NFL: 15, etc.)
+   * - Events are sorted by probability (highest to lowest)
+   * 
    * @example
    * ```typescript
    * const slipService = new SlipService({ providerConfig: { useMockData: true } });
@@ -99,7 +136,7 @@ export class SlipService {
       sport: sportQuery,
       tier = 'starter',
       limit = 20,
-      minProbability = 0.5,
+      minProbability: callerMinProbability = SLIPSMITH_MIN_PROBABILITY,
     } = options;
 
     // Validate date format
@@ -118,6 +155,19 @@ export class SlipService {
       throw new Error(`Unknown sport/league: ${sportQuery}`);
     }
 
+    // =======================================================================
+    // SLIPSMITH MINIMUM PROBABILITY ENFORCEMENT
+    // Clamp minProbability to at least 0.60 to prevent any red picks
+    // =======================================================================
+    const effectiveMinProbability = Math.max(callerMinProbability, SLIPSMITH_MIN_PROBABILITY);
+
+    // =======================================================================
+    // SLIPSMITH MINIMUM PICK COUNT ENFORCEMENT
+    // Enforce sport-specific minimum if caller's limit is too low
+    // =======================================================================
+    const requiredMin = getRequiredMinByLeague(league);
+    const effectiveLimit = Math.max(limit, requiredMin);
+
     // Generate projections
     const projections = await this.projectionEngine.generateProjections(league, date);
 
@@ -128,25 +178,92 @@ export class SlipService {
     const reliabilityScores = this.evaluationEngine.getReliabilityScores(sport, league);
 
     // Find edges
-    let events = this.edgeDetector.findEdges(projections, lines, reliabilityScores);
+    let allEvents = this.edgeDetector.findEdges(projections, lines, reliabilityScores);
 
-    // Filter by probability
-    events = this.edgeDetector.filterByProbability(events, minProbability);
-
-    // Get top events
-    events = this.edgeDetector.getTopEvents(events, limit);
-
-    // Store for later evaluation
-    this.evaluationEngine.storeEvents(events);
-
-    // Build warning if using mock data
-    let warning: string | undefined;
-    if (this.config.providerConfig?.useMockData) {
-      warning = 'Using mock data for demonstration. Connect real API providers for production use.';
+    // =======================================================================
+    // SLIPSMITH GREEN/YELLOW EVENT CATEGORIZATION
+    // Split events by probability tier for proper selection prioritization:
+    // - greenEvents: probability > 0.77 (high confidence, selected first)
+    // - yellowEvents: 0.60 <= probability <= 0.77 (moderate confidence, fill after green)
+    // - redEvents: probability < 0.60 (never included in SlipSmith slips)
+    // =======================================================================
+    const greenEvents: Event[] = [];
+    const yellowEvents: Event[] = [];
+    
+    for (const event of allEvents) {
+      // =======================================================================
+      // RELIABILITY INTEGRATION INTO EFFECTIVE PROBABILITY
+      // If a player/market has reliability data, adjust the effective probability
+      // slightly to account for historical accuracy. This is a conservative adjustment
+      // to prevent over-reliance on unreliable projections.
+      //
+      // Adjustment formula: effectiveProb = probability * (0.9 + 0.1 * reliability)
+      // - If reliability = 0.5 (neutral): effectiveProb = probability * 0.95
+      // - If reliability = 1.0 (perfect): effectiveProb = probability * 1.0
+      // - If reliability = 0.0 (poor): effectiveProb = probability * 0.9
+      //
+      // This gives a ±5% adjustment based on reliability, which is conservative
+      // but enough to influence borderline cases.
+      // =======================================================================
+      const reliability = event.reliability ?? 0.5;
+      const reliabilityFactor = 0.9 + (0.1 * reliability);
+      // Clamp to 1.0 to maintain probability validity
+      const effectiveProb = Math.min(1.0, event.probability * reliabilityFactor);
+      
+      // Categorize by effective probability
+      if (effectiveProb > GREEN_PROBABILITY_THRESHOLD) {
+        greenEvents.push(event);
+      } else if (effectiveProb >= SLIPSMITH_MIN_PROBABILITY) {
+        yellowEvents.push(event);
+      }
+      // Red events (effectiveProb < 0.60) are intentionally excluded
     }
 
+    // Sort both arrays by probability (highest first)
+    greenEvents.sort((a, b) => b.probability - a.probability);
+    yellowEvents.sort((a, b) => b.probability - a.probability);
+
+    // =======================================================================
+    // SLIPSMITH EVENT SELECTION STRATEGY
+    // 1. Start with all green events (highest confidence first)
+    // 2. Fill with yellow events if we haven't reached effectiveLimit
+    // 3. Never include red events
+    // =======================================================================
+    let selectedEvents: Event[] = [...greenEvents];
+    
+    // Fill with yellow events if needed
+    if (selectedEvents.length < effectiveLimit) {
+      const slotsRemaining = effectiveLimit - selectedEvents.length;
+      selectedEvents = selectedEvents.concat(yellowEvents.slice(0, slotsRemaining));
+    }
+
+    // Cap at effectiveLimit
+    selectedEvents = selectedEvents.slice(0, effectiveLimit);
+
+    // =======================================================================
+    // SLIPSMITH WARNING MESSAGE GENERATION
+    // Warn if we couldn't meet the required minimum for this sport
+    // =======================================================================
+    const warnings: string[] = [];
+    
+    if (this.config.providerConfig?.useMockData) {
+      warnings.push('Using mock data for demonstration. Connect real API providers for production use.');
+    }
+    
+    const eligibleCount = greenEvents.length + yellowEvents.length;
+    if (eligibleCount < requiredMin) {
+      warnings.push(
+        `Only ${eligibleCount} events met the minimum 60% probability threshold for ${league} on this date.`
+      );
+    }
+    
+    const warning = warnings.length > 0 ? warnings.join(' ') : undefined;
+
+    // Store for later evaluation
+    this.evaluationEngine.storeEvents(selectedEvents);
+
     // Build and return SlipSmith Slip
-    return buildSlipSmithSlip(events, date, sport, league, tier, warning);
+    return buildSlipSmithSlip(selectedEvents, date, sport, league, tier, warning);
   }
 
   /**

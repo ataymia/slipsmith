@@ -18,12 +18,10 @@ import {
   SlipTier,
 } from '../types';
 import { ProviderFactory, ProviderConfig } from '../providers';
-import { ProjectionEngine, EdgeDetector } from '../engine';
+import { ProjectionEngine, EdgeDetector, SlipService } from '../engine';
 import { EvaluationEngine } from '../evaluation';
 import { 
-  buildSlipSmithSlip, 
   normalizeTier,
-  isValidTier,
 } from '../utils/slipBuilder';
 
 export interface ApiConfig {
@@ -54,6 +52,12 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
   const projectionEngine = new ProjectionEngine(providerFactory);
   const edgeDetector = new EdgeDetector();
   const evaluationEngine = new EvaluationEngine(fullConfig.dbPath, providerFactory);
+  
+  // Initialize SlipService for /api/top-events endpoint
+  const slipService = new SlipService({
+    dbPath: fullConfig.dbPath,
+    providerConfig: fullConfig.providerConfig,
+  });
   
   // Health check
   app.get('/health', (req: Request, res: Response) => {
@@ -178,20 +182,28 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
    * Returns events in the official SlipSmith JSON schema.
    * This is the preferred endpoint for external consumers.
    * 
+   * SlipSmith Rules Applied:
+   * - Only events with probability >= 0.60 are included (no red picks)
+   * - Green events (> 0.77) are prioritized, then yellow events (0.60-0.77)
+   * - Sport-specific minimum pick counts are enforced (NBA: 30, NFL: 15, etc.)
+   * - Events are sorted by probability (highest to lowest)
+   * 
    * Query Parameters:
    * - date: YYYY-MM-DD format (required)
    * - sport: Sport/League identifier (required, e.g., "NBA", "NFL")
    * - tier: Tier level - "starter", "pro", or "vip" (optional, defaults to "starter")
-   * - limit: Maximum number of events to return (optional, defaults to 20)
-   * - minProbability: Minimum probability filter 0-1 (optional, defaults to 0.5)
+   * - limit: Maximum number of events to return (optional; sport minimum enforced)
+   * - minProbability: Minimum probability filter 0-1 (optional, clamped to at least 0.60)
    */
   app.get('/api/top-events', async (req: Request, res: Response) => {
     try {
       const date = req.query.date as string;
       const sportQuery = req.query.sport as string;
       const tierQuery = (req.query.tier as string) || 'starter';
-      const limit = parseInt(req.query.limit as string) || 20;
-      const minProbability = parseFloat(req.query.minProbability as string) || 0.5;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const minProbability = req.query.minProbability 
+        ? parseFloat(req.query.minProbability as string) 
+        : undefined;
       
       // Validate required parameters
       if (!date) {
@@ -209,55 +221,14 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
       // Validate and normalize tier
       const tier = normalizeTier(tierQuery);
       
-      // Map sport query to league (sport query can be league identifier)
-      const league = sportQuery.toUpperCase() as League;
-      
-      // Get sport for this league
-      let sport: Sport;
-      try {
-        sport = providerFactory.getSportForLeague(league);
-      } catch {
-        return res.status(400).json({
-          error: `Unknown sport/league: ${sportQuery}`,
-        });
-      }
-      
-      // Generate projections
-      const projections = await projectionEngine.generateProjections(league, date);
-      
-      // Get consensus lines
-      const lines = generateMockLines(projections, league);
-      
-      // Get reliability scores
-      const reliabilityScores = evaluationEngine.getReliabilityScores(sport, league);
-      
-      // Find edges
-      let events = edgeDetector.findEdges(projections, lines, reliabilityScores);
-      
-      // Filter by probability
-      events = edgeDetector.filterByProbability(events, minProbability);
-      
-      // Get top events
-      events = edgeDetector.getTopEvents(events, limit);
-      
-      // Store for later evaluation
-      evaluationEngine.storeEvents(events);
-      
-      // Build warning message if using mock data
-      let warning: string | undefined;
-      if (fullConfig.providerConfig.useMockData) {
-        warning = 'Using mock data for demonstration. Connect real API providers for production use.';
-      }
-      
-      // Build SlipSmith Slip in official export format
-      const slip: SlipSmithSlip = buildSlipSmithSlip(
-        events,
+      // Use SlipService to generate the slip with all SlipSmith rules applied
+      const slip = await slipService.getTopEvents({
         date,
-        sport,
-        league,
+        sport: sportQuery,
         tier,
-        warning
-      );
+        limit,
+        minProbability,
+      });
       
       res.json(slip);
     } catch (error: any) {
@@ -359,6 +330,7 @@ export function createApiServer(config: Partial<ApiConfig> = {}) {
     },
     close: () => {
       evaluationEngine.close();
+      slipService.close();
     },
   };
 }

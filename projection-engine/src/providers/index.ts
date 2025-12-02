@@ -2,7 +2,39 @@
  * Data Providers Index
  * 
  * Central export point for all data providers.
+ * 
+ * This module exports two generations of provider architecture:
+ * 
+ * 1. Legacy Providers (ProviderFactory, BaseDataProvider, etc.)
+ *    - Sport-specific providers like BasketballProvider, FootballProvider
+ *    - Still used by existing ProjectionEngine and EvaluationEngine
+ * 
+ * 2. New SlipSmith Providers (SlipSmithProviderFactory)
+ *    - Interface-based providers (ScheduleProvider, OddsProvider, etc.)
+ *    - Mock and Real implementations
+ *    - Ready for real API integration
  */
+
+// =============================================================================
+// NEW SLIPSMITH PROVIDER INTERFACES AND IMPLEMENTATIONS
+// =============================================================================
+
+// Provider interfaces and types
+export * from './interfaces';
+
+// Mock provider implementations
+export * from './mock';
+
+// Real provider stub implementations
+export * from './real';
+
+// New provider factory
+export { SlipSmithProviderFactory } from './SlipSmithProviderFactory';
+export type { SlipSmithProviderConfig } from './SlipSmithProviderFactory';
+
+// =============================================================================
+// LEGACY PROVIDERS (kept for backward compatibility)
+// =============================================================================
 
 export { BaseDataProvider, MockDataProvider } from './BaseProvider';
 export { BasketballProvider } from './BasketballProvider';
@@ -29,9 +61,12 @@ export interface ProviderConfig {
 }
 
 /**
- * Provider Factory
+ * Provider Factory (Legacy)
  * 
  * Creates the appropriate data provider for a given sport.
+ * 
+ * Note: For new development, consider using SlipSmithProviderFactory instead,
+ * which provides more granular control over individual data sources.
  */
 export class ProviderFactory {
   private config: ProviderConfig;

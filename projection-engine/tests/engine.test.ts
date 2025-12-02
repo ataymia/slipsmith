@@ -530,16 +530,16 @@ describe('SlipBuilder', () => {
       expect(slip.warning).toBe('Test warning');
     });
     
-    it('should sort events by edge score descending', () => {
+    it('should sort events by probability descending', () => {
       const events: Event[] = [
         {
-          eventId: 'low-edge',
+          eventId: 'low-prob',
           date: '2025-12-01',
           sport: 'basketball',
           league: 'NBA',
           gameId: 'game_1',
           playerId: 'player_1',
-          playerName: 'Low Edge Player',
+          playerName: 'Low Probability Player',
           teamId: 'team_1',
           teamName: 'Team A',
           market: 'POINTS',
@@ -547,18 +547,18 @@ describe('SlipBuilder', () => {
           direction: 'over',
           modelProjection: 21,
           probability: 0.55,
-          edgeScore: 2.0,
-          reasoning: 'Low edge',
+          edgeScore: 9.0,  // Higher edge but lower probability
+          reasoning: 'Low probability',
           confidence: 0.6,
         },
         {
-          eventId: 'high-edge',
+          eventId: 'high-prob',
           date: '2025-12-01',
           sport: 'basketball',
           league: 'NBA',
           gameId: 'game_1',
           playerId: 'player_2',
-          playerName: 'High Edge Player',
+          playerName: 'High Probability Player',
           teamId: 'team_1',
           teamName: 'Team A',
           market: 'POINTS',
@@ -566,16 +566,55 @@ describe('SlipBuilder', () => {
           direction: 'over',
           modelProjection: 30,
           probability: 0.85,
-          edgeScore: 9.0,
-          reasoning: 'High edge',
+          edgeScore: 2.0,  // Lower edge but higher probability
+          reasoning: 'High probability',
           confidence: 0.9,
         },
       ];
       
       const slip = buildSlipSmithSlip(events, '2025-12-01', 'basketball', 'NBA', 'vip');
       
-      expect(slip.events[0].player).toBe('High Edge Player');
-      expect(slip.events[1].player).toBe('Low Edge Player');
+      // Should be sorted by probability (highest first), not edge score
+      expect(slip.events[0].player).toBe('High Probability Player');
+      expect(slip.events[1].player).toBe('Low Probability Player');
+    });
+  });
+});
+
+// =============================================================================
+// SLIPSMITH SERVICE TESTS
+// =============================================================================
+
+import {
+  getRequiredMinByLeague,
+  SLIPSMITH_MIN_PROBABILITY,
+  GREEN_PROBABILITY_THRESHOLD,
+} from '../src/engine/SlipService';
+
+describe('SlipService', () => {
+  describe('getRequiredMinByLeague', () => {
+    it('should return 30 for NBA', () => {
+      expect(getRequiredMinByLeague('NBA')).toBe(30);
+    });
+    
+    it('should return 20 for WNBA', () => {
+      expect(getRequiredMinByLeague('WNBA')).toBe(20);
+    });
+    
+    it('should return 15 for NFL', () => {
+      expect(getRequiredMinByLeague('NFL')).toBe(15);
+    });
+    
+    it('should return 20 for unknown leagues (default)', () => {
+      expect(getRequiredMinByLeague('EPL')).toBe(20);
+      expect(getRequiredMinByLeague('LOL')).toBe(20);
+    });
+  });
+
+  describe('SlipSmith constants', () => {
+    it('should have correct probability thresholds', () => {
+      expect(SLIPSMITH_MIN_PROBABILITY).toBe(0.60);
+      expect(GREEN_PROBABILITY_THRESHOLD).toBe(0.77);
     });
   });
 });
