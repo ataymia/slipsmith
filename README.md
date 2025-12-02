@@ -213,6 +213,34 @@ The site uses a dark theme with money green (#00ff88) as the primary accent colo
    ```
 3. **Environment Variables**: Never commit Firebase config with sensitive data to public repositories
 
+## ⚙️ Configuration and Keys
+
+The SlipSmith Projection Engine requires various API keys and configuration settings.
+
+**Quick Start (Mock Mode):**
+- The engine defaults to mock mode (`USE_MOCK_DATA=true`)
+- No API keys are required to run the dashboard and test the pipeline
+- Mock data demonstrates the full projection → edges → slips workflow
+
+**For Production:**
+- See [docs/CONFIG_KEYS.md](docs/CONFIG_KEYS.md) for the complete list of environment variables
+- See [docs/CLOUDFLARE_DEPLOYMENT.md](docs/CLOUDFLARE_DEPLOYMENT.md) for deployment instructions
+- Set required keys in Cloudflare Pages → Settings → Variables and Secrets
+- Set `USE_MOCK_DATA=false` to use real data providers
+
+**Local Development:**
+```bash
+# Copy the example env file
+cp projection-engine/.env.example projection-engine/.env.local
+
+# Edit .env.local with your keys (optional - mock mode works without keys)
+# Run the development server
+cd projection-engine && npm run dev
+
+# Or run with Cloudflare Pages locally
+wrangler pages dev ./projection-engine/frontend
+```
+
 ## 📝 License
 
 This project is for private use.

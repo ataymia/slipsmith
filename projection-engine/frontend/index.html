@@ -533,10 +533,10 @@
             </div>
 
             <div id="connection-banner" class="connection-banner">
-                <h4>⚠️ Server Not Connected</h4>
-                <p>The projection engine API server is not running. To start it, run this command in the <code>projection-engine</code> directory:</p>
-                <p><code>npm run dev</code></p>
-                <p class="help-text">The server needs to be running on port 3001 for this dashboard to work.</p>
+                <h4>⚠️ API Not Connected</h4>
+                <p>The projection engine API is not responding. If running locally, start the dev server:</p>
+                <p><code>cd projection-engine && npm run dev</code></p>
+                <p class="help-text">Or run with Cloudflare Pages: <code>wrangler pages dev ./projection-engine/frontend</code></p>
                 <button class="btn-retry" id="retry-connection">🔄 Retry Connection</button>
             </div>
 
@@ -588,7 +588,9 @@
 
     <script>
         // API Configuration
-        const API_BASE = 'http://localhost:3001';
+        // In production, API calls go to same origin (Cloudflare Pages Function)
+        // In local dev with wrangler, also uses same origin
+        const API_BASE = window.location.origin;
         
         // State
         let currentSport = 'basketball';

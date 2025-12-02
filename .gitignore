@@ -36,3 +36,7 @@ firestore-debug.log
 # Logs
 *.log
 logs/
+
+# Cloudflare
+.wrangler/
+.dev.vars
