@@ -21,6 +21,27 @@ import {
 import { ProviderFactory } from '../providers';
 
 /**
+ * Database row type for projections table
+ */
+interface ProjectionRow {
+  id: string;
+  date: string;
+  sport: string;
+  league: string;
+  game_id: string;
+  player_id: string | null;
+  team_id: string | null;
+  market: string;
+  line: number;
+  direction: string;
+  model_projection: number;
+  probability: number;
+  edge_score: number;
+  reasoning: string | null;
+  created_at: string;
+}
+
+/**
  * Database schema for the evaluation/learning system
  */
 const SCHEMA = `
@@ -140,7 +161,7 @@ export class EvaluationEngine {
       SELECT p.* FROM projections p
       LEFT JOIN evaluations e ON p.id = e.projection_id
       WHERE p.date = ? AND e.id IS NULL
-    `).all(date) as any[];
+    `).all(date) as ProjectionRow[];
     
     if (projections.length === 0) {
       return [];
@@ -149,7 +170,7 @@ export class EvaluationEngine {
     const evaluated: EvaluatedEvent[] = [];
     
     // Group by game to minimize API calls
-    const gameGroups = new Map<string, any[]>();
+    const gameGroups = new Map<string, ProjectionRow[]>();
     for (const proj of projections) {
       const games = gameGroups.get(proj.game_id) ?? [];
       games.push(proj);

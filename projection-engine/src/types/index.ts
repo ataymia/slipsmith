@@ -159,12 +159,20 @@ export type MarketType =
   // Team markets
   | 'TEAM_TOTAL' | 'GAME_TOTAL' | 'SPREAD' | 'MONEYLINE';
 
+/**
+ * Consensus betting line from sportsbooks.
+ * 
+ * For player props: playerId and playerName are set, teamId/teamName may be set for context.
+ * For team props: teamId and teamName are set, playerId/playerName are null.
+ */
 export interface ConsensusLine {
   id: string;
   gameId: string;
   sport: Sport;
   league: League;
-  playerId?: string; // null for team markets
+  /** Player ID for player props, null/undefined for team props */
+  playerId?: string;
+  /** Team ID - set for team props, may be set for player props for context */
   teamId?: string;
   playerName?: string;
   teamName?: string;

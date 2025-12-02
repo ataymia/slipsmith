@@ -349,9 +349,16 @@ export class FootballProvider extends BaseDataProvider {
     return 'healthy';
   }
   
+  /**
+   * Find a stat value by name from ESPN's stat array format.
+   * Note: ESPN returns stats in array format based on position.
+   * This is a placeholder - in production, parse the actual stat structure.
+   * TODO: Implement proper stat parsing based on ESPN's response format
+   */
   private findStat(statValues: unknown[], statName: string): number | undefined {
-    // ESPN returns stats in array format based on position
-    // This is a simplified version - in production, parse the actual stat structure
+    // ESPN returns stats as array of values without keys
+    // The position in the array depends on the stat category
+    // For now, return undefined - historical stats come from getPlayerStats
     return undefined;
   }
   

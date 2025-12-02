@@ -109,8 +109,9 @@ async function generateProjections() {
           console.log(`         - ${player.playerName}: ${mainStat.toFixed(1)} ${statName}`);
         }
       }
-    } catch (error: any) {
-      console.error(`   Error: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`   Error: ${message}`);
     }
   }
   

@@ -288,14 +288,18 @@ export class ProjectionEngine {
     const projectedStats = this.calculateWeightedStats(historicalStats, sport);
     
     // Apply injury penalty
-    const injuryPenalty = this.config.injuryPenalties[injuryStatus] ?? 1.0;
-    if (injuryPenalty < 1.0) {
+    const injuryPenalty = this.config.injuryPenalties[injuryStatus];
+    if (injuryPenalty === undefined) {
+      console.warn(`Unknown injury status "${injuryStatus}" for player ${player.name}, using default (1.0)`);
+    }
+    const appliedPenalty = injuryPenalty ?? 1.0;
+    if (appliedPenalty < 1.0) {
       adjustments.push({
         type: 'injury',
-        factor: injuryPenalty,
+        factor: appliedPenalty,
         description: `Injury status: ${injuryStatus}`,
       });
-      confidence *= injuryPenalty;
+      confidence *= appliedPenalty;
       
       // Apply penalty to all stats
       for (const key of Object.keys(projectedStats)) {

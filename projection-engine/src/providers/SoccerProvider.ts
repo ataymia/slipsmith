@@ -109,10 +109,16 @@ export class SoccerProvider extends BaseDataProvider {
     }
   }
   
-  async getTeamRoster(teamId: string): Promise<Player[]> {
+  /**
+   * Get team roster from ESPN API.
+   * @param teamId - The team ID
+   * @param league - Optional league to use for API routing, defaults to EPL
+   */
+  async getTeamRoster(teamId: string, league?: League): Promise<Player[]> {
     try {
+      const espnLeague = league ? (LEAGUE_ESPN_MAP[league] ?? 'eng.1') : 'eng.1';
       const response = await axios.get(
-        `${this.espnBaseUrl}/eng.1/teams/${teamId}/roster`,
+        `${this.espnBaseUrl}/${espnLeague}/teams/${teamId}/roster`,
         { timeout: 10000 }
       );
       
