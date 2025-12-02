@@ -1,0 +1,40 @@
+{
+  "name": "slipsmith-projection-engine",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "generate:nba": "ts-node src/cli.ts generate --sport nba --date today",
+    "generate:nfl": "ts-node src/cli.ts generate --sport nfl --date today",
+    "events:nba": "ts-node src/cli.ts events --sport nba --date today",
+    "events:nfl": "ts-node src/cli.ts events --sport nfl --date today",
+    "evaluate": "ts-node src/cli.ts evaluate --date yesterday"
+  },
+  "keywords": ["sports", "projections", "betting", "analytics"],
+  "author": "SlipSmith",
+  "license": "ISC",
+  "description": "Multi-sport projection engine for generating box score projections and identifying high-edge events",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
+  }
+}
