@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlipSmith Projection Engine</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e0f;
+            --bg-secondary: #131a1d;
+            --bg-tertiary: #1a2528;
+            --bg-card: #1f2a2e;
+            --text-primary: #e8f0f2;
+            --text-secondary: #a8b8bd;
+            --text-muted: #6b7e85;
+            --accent-green: #00ff88;
+            --accent-green-dark: #00cc6d;
+            --border-color: #2a3a40;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --success: #00ff88;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--accent-green);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo h1 {
+            color: var(--accent-green);
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .logo span {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 70px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .sidebar h3 {
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dark) 100%);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-primary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 0.75rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .tab.active {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .game-card {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .game-teams {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .team {
+            text-align: center;
+        }
+
+        .team-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .team-score {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .vs {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .player-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .player-row:last-child {
+            border-bottom: none;
+        }
+
+        .player-name {
+            font-weight: 500;
+        }
+
+        .stat-value {
+            text-align: center;
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .event-card {
+            border-left: 4px solid var(--warning);
+        }
+
+        .event-card.strong {
+            border-left-color: var(--success);
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .event-player {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .event-edge {
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .event-stat {
+            text-align: center;
+        }
+
+        .event-stat-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .event-stat-value.over {
+            color: var(--success);
+        }
+
+        .event-stat-value.under {
+            color: var(--danger);
+        }
+
+        .event-reasoning {
+            background: var(--bg-primary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-item {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-green);
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            margin-bottom: 1rem;
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .event-details {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>🎯 SlipSmith</h1>
+            <span>Projection Engine</span>
+        </div>
+        <div class="status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <h3>Controls</h3>
+            
+            <div class="form-group">
+                <label for="sport-select">Sport</label>
+                <select id="sport-select">
+                    <option value="basketball">🏀 Basketball</option>
+                    <option value="football">🏈 Football</option>
+                    <option value="soccer">⚽ Soccer</option>
+                    <option value="esports">🎮 Esports</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="league-select">League</label>
+                <select id="league-select">
+                    <option value="NBA">NBA</option>
+                    <option value="WNBA">WNBA</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="date-input">Date</label>
+                <input type="date" id="date-input" value="">
+            </div>
+            
+            <button class="btn" id="generate-btn">Generate Projections</button>
+            <button class="btn" id="events-btn">Get Top Events</button>
+            <button class="btn btn-secondary" id="evaluate-btn">Run Evaluation</button>
+        </div>
+
+        <div class="content">
+            <div class="tabs">
+                <button class="tab active" data-tab="projections">Projections</button>
+                <button class="tab" data-tab="events">Top Events</button>
+                <button class="tab" data-tab="summary">Summary</button>
+            </div>
+
+            <div id="projections-tab" class="tab-content active">
+                <div class="empty-state" id="projections-empty">
+                    <p>📊 No projections loaded</p>
+                    <p>Select a sport, league, and date, then click "Generate Projections"</p>
+                </div>
+                <div id="projections-loading" class="loading" style="display: none;">
+                    Generating projections
+                </div>
+                <div id="projections-content"></div>
+            </div>
+
+            <div id="events-tab" class="tab-content">
+                <div class="empty-state" id="events-empty">
+                    <p>🎯 No events loaded</p>
+                    <p>Click "Get Top Events" to find high-edge opportunities</p>
+                </div>
+                <div id="events-loading" class="loading" style="display: none;">
+                    Finding edges
+                </div>
+                <div id="events-content"></div>
+            </div>
+
+            <div id="summary-tab" class="tab-content">
+                <div class="summary-grid" id="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value" id="summary-total">-</div>
+                        <div class="summary-label">Total Predictions</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="summary-hits">-</div>
+                        <div class="summary-label">Hits</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="summary-misses">-</div>
+                        <div class="summary-label">Misses</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="summary-hitrate">-</div>
+                        <div class="summary-label">Hit Rate</div>
+                    </div>
+                </div>
+                <button class="btn" id="refresh-summary-btn" style="width: auto;">Refresh Summary</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:3001';
+        
+        // State
+        let currentSport = 'basketball';
+        let currentLeague = 'NBA';
+        let currentDate = new Date().toISOString().split('T')[0];
+        
+        // League options by sport
+        const leaguesBySport = {
+            basketball: ['NBA', 'WNBA'],
+            football: ['NFL', 'NCAA_FB'],
+            soccer: ['EPL', 'LA_LIGA', 'BUNDESLIGA', 'SERIE_A', 'LIGUE_1', 'MLS'],
+            esports: ['LOL', 'CSGO', 'VALORANT', 'DOTA2'],
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set today's date
+            document.getElementById('date-input').value = currentDate;
+            
+            // Check API connection
+            checkConnection();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Load summary
+            loadSummary();
+        });
+        
+        function setupEventListeners() {
+            // Sport change
+            document.getElementById('sport-select').addEventListener('change', (e) => {
+                currentSport = e.target.value;
+                updateLeagueOptions();
+            });
+            
+            // League change
+            document.getElementById('league-select').addEventListener('change', (e) => {
+                currentLeague = e.target.value;
+            });
+            
+            // Date change
+            document.getElementById('date-input').addEventListener('change', (e) => {
+                currentDate = e.target.value;
+            });
+            
+            // Buttons
+            document.getElementById('generate-btn').addEventListener('click', generateProjections);
+            document.getElementById('events-btn').addEventListener('click', getEvents);
+            document.getElementById('evaluate-btn').addEventListener('click', runEvaluation);
+            document.getElementById('refresh-summary-btn').addEventListener('click', loadSummary);
+            
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                });
+            });
+        }
+        
+        function updateLeagueOptions() {
+            const select = document.getElementById('league-select');
+            const leagues = leaguesBySport[currentSport] || [];
+            
+            select.innerHTML = leagues.map(l => `<option value="${l}">${l}</option>`).join('');
+            currentLeague = leagues[0] || '';
+        }
+        
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('status-dot').classList.add('connected');
+                    document.getElementById('status-text').textContent = 'Connected';
+                }
+            } catch (error) {
+                console.log('API not connected. Start the server with: npm run dev');
+            }
+        }
+        
+        async function generateProjections() {
+            const btn = document.getElementById('generate-btn');
+            const loading = document.getElementById('projections-loading');
+            const content = document.getElementById('projections-content');
+            const empty = document.getElementById('projections-empty');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            content.innerHTML = '';
+            empty.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/projections/${currentLeague}/${currentDate}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to generate projections');
+                }
+                
+                renderProjections(data);
+                
+                // Switch to projections tab
+                document.querySelector('.tab[data-tab="projections"]').click();
+            } catch (error) {
+                content.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        function renderProjections(data) {
+            const content = document.getElementById('projections-content');
+            
+            if (!data.games || data.games.length === 0) {
+                content.innerHTML = '<div class="empty-state"><p>No games scheduled for this date</p></div>';
+                return;
+            }
+            
+            content.innerHTML = data.games.map(game => `
+                <div class="card game-card">
+                    <div class="card-header">
+                        <span class="card-title">Game ${game.gameId}</span>
+                        <span>${game.date}</span>
+                    </div>
+                    <div class="game-teams">
+                        <div class="team">
+                            <div class="team-name">${game.awayTeam.teamName}</div>
+                            <div class="team-score">${game.awayTeam.projectedScore.toFixed(1)}</div>
+                        </div>
+                        <div class="vs">@</div>
+                        <div class="team">
+                            <div class="team-name">${game.homeTeam.teamName}</div>
+                            <div class="team-score">${game.homeTeam.projectedScore.toFixed(1)}</div>
+                        </div>
+                    </div>
+                    ${renderPlayerProjections(game.players)}
+                </div>
+            `).join('');
+        }
+        
+        function renderPlayerProjections(players) {
+            if (!players || players.length === 0) return '<p>No player projections</p>';
+            
+            const topPlayers = players
+                .filter(p => p.projectedStats.points || p.projectedStats.kills)
+                .sort((a, b) => 
+                    (b.projectedStats.points || b.projectedStats.kills || 0) - 
+                    (a.projectedStats.points || a.projectedStats.kills || 0)
+                )
+                .slice(0, 5);
+            
+            return `
+                <div style="margin-top: 1rem;">
+                    <h4 style="color: var(--text-secondary); margin-bottom: 0.75rem;">Top Players</h4>
+                    <div class="player-row" style="font-weight: 600; color: var(--text-muted);">
+                        <div>Player</div>
+                        <div style="text-align: center;">PTS</div>
+                        <div style="text-align: center;">REB</div>
+                        <div style="text-align: center;">AST</div>
+                    </div>
+                    ${topPlayers.map(p => `
+                        <div class="player-row">
+                            <div class="player-name">${p.playerName}</div>
+                            <div class="stat-value">${(p.projectedStats.points || p.projectedStats.kills || 0).toFixed(1)}</div>
+                            <div class="stat-value">${(p.projectedStats.rebounds || p.projectedStats.deaths || 0).toFixed(1)}</div>
+                            <div class="stat-value">${(p.projectedStats.assists || 0).toFixed(1)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        async function getEvents() {
+            const btn = document.getElementById('events-btn');
+            const loading = document.getElementById('events-loading');
+            const content = document.getElementById('events-content');
+            const empty = document.getElementById('events-empty');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            content.innerHTML = '';
+            empty.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/events/${currentLeague}/${currentDate}?limit=20`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to get events');
+                }
+                
+                renderEvents(data);
+                
+                // Switch to events tab
+                document.querySelector('.tab[data-tab="events"]').click();
+            } catch (error) {
+                content.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        function renderEvents(data) {
+            const content = document.getElementById('events-content');
+            
+            if (!data.events || data.events.length === 0) {
+                content.innerHTML = '<div class="empty-state"><p>No high-edge events found</p></div>';
+                return;
+            }
+            
+            content.innerHTML = data.events.map(event => {
+                const isStrong = event.edgeScore >= 5;
+                
+                return `
+                    <div class="card event-card ${isStrong ? 'strong' : ''}">
+                        <div class="event-header">
+                            <div>
+                                <div class="event-player">${event.playerName || event.teamName}</div>
+                                <div style="color: var(--text-muted); font-size: 0.9rem;">${event.market}</div>
+                            </div>
+                            <div class="event-edge">Edge: ${event.edgeScore.toFixed(2)}</div>
+                        </div>
+                        <div class="event-details">
+                            <div class="event-stat">
+                                <div class="event-stat-label">Line</div>
+                                <div class="event-stat-value">${event.line}</div>
+                            </div>
+                            <div class="event-stat">
+                                <div class="event-stat-label">Projection</div>
+                                <div class="event-stat-value">${event.modelProjection}</div>
+                            </div>
+                            <div class="event-stat">
+                                <div class="event-stat-label">Direction</div>
+                                <div class="event-stat-value ${event.direction}">${event.direction.toUpperCase()}</div>
+                            </div>
+                            <div class="event-stat">
+                                <div class="event-stat-label">Probability</div>
+                                <div class="event-stat-value">${(event.probability * 100).toFixed(0)}%</div>
+                            </div>
+                        </div>
+                        <div class="event-reasoning">💡 ${event.reasoning}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function runEvaluation() {
+            const btn = document.getElementById('evaluate-btn');
+            btn.disabled = true;
+            
+            try {
+                // Evaluate yesterday's predictions
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const dateStr = yesterday.toISOString().split('T')[0];
+                
+                const response = await fetch(`${API_BASE}/api/evaluate/${dateStr}`, {
+                    method: 'POST',
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`Evaluation complete!\n\nTotal: ${data.summary.total}\nHits: ${data.summary.hits}\nMisses: ${data.summary.misses}\nHit Rate: ${(data.summary.hitRate * 100).toFixed(1)}%`);
+                    loadSummary();
+                } else {
+                    throw new Error(data.error || 'Evaluation failed');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        async function loadSummary() {
+            try {
+                const response = await fetch(`${API_BASE}/api/summary`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('summary-total').textContent = data.total;
+                    document.getElementById('summary-hits').textContent = data.hits;
+                    document.getElementById('summary-misses').textContent = data.misses;
+                    document.getElementById('summary-hitrate').textContent = 
+                        data.hitRate > 0 ? `${(data.hitRate * 100).toFixed(1)}%` : '-';
+                }
+            } catch (error) {
+                console.log('Could not load summary');
+            }
+        }
+    </script>
+</body>
+</html>

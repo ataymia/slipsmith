@@ -1,0 +1,350 @@
+# SlipSmith Projection Engine
+
+🎯 **Multi-Sport Projection Brain for NBA, NFL, Soccer & Esports**
+
+A full-featured projection engine that generates box score projections, identifies high-edge betting opportunities, and learns from historical performance.
+
+## Features
+
+- **Multi-Sport Support**: NBA, WNBA, NFL, Soccer (EPL, La Liga, etc.), and Esports (LoL, CS2)
+- **Full Box Score Projections**: Team and player-level projections for every game
+- **Edge Detection**: Automatically finds misaligned lines with probability scoring
+- **Self-Learning**: Tracks predictions, evaluates results, and updates reliability scores
+- **REST API**: Full API for integration with other tools
+- **Testing UI**: Built-in frontend for testing and visualization
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+```bash
+# Navigate to projection-engine directory
+cd projection-engine
+
+# Install dependencies
+npm install
+
+# Create data directory
+mkdir -p data
+
+# Copy environment file
+cp .env.example .env
+```
+
+### Configuration
+
+Edit `.env` with your API keys (optional - uses mock data without keys):
+
+```bash
+# Server
+PORT=3001
+DB_PATH=./data/slipsmith.db
+
+# Use mock data for testing (set to 'true' for testing without APIs)
+USE_MOCK_DATA=false
+
+# API Keys (optional)
+BASKETBALL_API_KEY=your_balldontlie_key
+ESPORTS_API_KEY=your_pandascore_key
+ODDS_API_KEY=your_odds_api_key
+```
+
+### Running the Server
+
+```bash
+# Development mode
+npm run dev
+
+# Production mode
+npm run build
+npm start
+```
+
+The API will be available at `http://localhost:3001`
+
+### Using the Frontend
+
+Open `frontend/index.html` in your browser to access the testing UI.
+
+---
+
+## CLI Usage
+
+### Generate Projections
+
+```bash
+# Generate projections for NBA today
+npm run generate:nba
+
+# Or using ts-node directly
+npx ts-node src/cli.ts generate --sport basketball --date today
+
+# For specific league and date
+npx ts-node src/cli.ts generate --league NBA --date 2024-01-15
+
+# Using mock data
+npx ts-node src/cli.ts generate --sport basketball --mock
+```
+
+### Get Top Events (Edges)
+
+```bash
+# Get top events for NFL
+npm run events:nfl
+
+# With options
+npx ts-node src/cli.ts events --league NBA --date today --limit 10
+```
+
+### Run Evaluation
+
+```bash
+# Evaluate yesterday's predictions
+npm run evaluate
+
+# Specific date
+npx ts-node src/cli.ts evaluate --date 2024-01-14
+```
+
+### View Summary
+
+```bash
+# Overall performance summary
+npx ts-node src/cli.ts summary
+
+# With date range
+npx ts-node src/cli.ts summary --start 2024-01-01 --end 2024-01-31
+```
+
+### Reliability Report
+
+```bash
+# View reliability scores
+npx ts-node src/cli.ts reliability --sport basketball
+```
+
+---
+
+## API Endpoints
+
+### Health Check
+
+```
+GET /health
+```
+
+### Get Supported Sports
+
+```
+GET /api/sports
+```
+
+Response:
+```json
+{
+  "sports": {
+    "basketball": ["NBA", "WNBA"],
+    "football": ["NFL", "NCAA_FB"],
+    "soccer": ["EPL", "LA_LIGA", ...],
+    "esports": ["LOL", "CSGO", ...]
+  }
+}
+```
+
+### Get Schedule
+
+```
+GET /api/schedule/:league/:date
+```
+
+Example:
+```bash
+curl http://localhost:3001/api/schedule/NBA/2024-01-15
+```
+
+### Generate Projections
+
+```
+GET /api/projections/:league/:date
+```
+
+Example:
+```bash
+curl http://localhost:3001/api/projections/NBA/2024-01-15
+```
+
+Response:
+```json
+{
+  "success": true,
+  "date": "2024-01-15",
+  "sport": "basketball",
+  "league": "NBA",
+  "games": [
+    {
+      "gameId": "game_123",
+      "homeTeam": { "teamName": "Warriors", "projectedScore": 118.5, ... },
+      "awayTeam": { "teamName": "Lakers", "projectedScore": 112.3, ... },
+      "players": [
+        { "playerName": "Stephen Curry", "projectedStats": { "points": 28.5, ... } }
+      ]
+    }
+  ]
+}
+```
+
+### Get Top Events
+
+```
+GET /api/events/:league/:date?limit=20&minProbability=0.5
+```
+
+Example:
+```bash
+curl "http://localhost:3001/api/events/NBA/2024-01-15?limit=10"
+```
+
+Response:
+```json
+{
+  "success": true,
+  "events": [
+    {
+      "eventId": "evt_123",
+      "playerName": "Stephen Curry",
+      "market": "POINTS",
+      "line": 27.5,
+      "direction": "over",
+      "modelProjection": 31.2,
+      "probability": 0.72,
+      "edgeScore": 6.8,
+      "reasoning": "Curry projects to 31.2 points..."
+    }
+  ]
+}
+```
+
+### Run Evaluation
+
+```
+POST /api/evaluate/:date
+```
+
+Example:
+```bash
+curl -X POST http://localhost:3001/api/evaluate/2024-01-14
+```
+
+### Get Summary
+
+```
+GET /api/summary?startDate=2024-01-01&endDate=2024-01-31
+```
+
+### Get Reliability Report
+
+```
+GET /api/reliability?sport=basketball
+```
+
+---
+
+## Project Structure
+
+```
+projection-engine/
+├── src/
+│   ├── api/          # Express server and routes
+│   ├── engine/       # Projection and edge detection logic
+│   ├── evaluation/   # Learning and evaluation system
+│   ├── providers/    # Sport-specific data providers
+│   ├── types/        # TypeScript type definitions
+│   ├── cli.ts        # Command-line interface
+│   └── index.ts      # Main entry point
+├── frontend/         # Testing UI
+├── docs/             # Documentation
+│   ├── APIS_AND_WEBHOOKS.md
+│   ├── ARCHITECTURE.md
+│   ├── LEARNING_AND_EVAL.md
+│   ├── AI_INTEGRATION.md
+│   └── NEXT_STEPS_AND_HOOKS.md
+├── data/             # SQLite database (gitignored)
+└── tests/            # Test files
+```
+
+---
+
+## Documentation
+
+- [APIs and Webhooks](docs/APIS_AND_WEBHOOKS.md) - External API providers and integration
+- [Architecture](docs/ARCHITECTURE.md) - System design and projection methodology
+- [Learning and Evaluation](docs/LEARNING_AND_EVAL.md) - Self-learning system documentation
+- [AI Integration](docs/AI_INTEGRATION.md) - Using AI for reasoning and explanation
+- [Next Steps](docs/NEXT_STEPS_AND_HOOKS.md) - Roadmap and future enhancements
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Building
+
+```bash
+npm run build
+```
+
+---
+
+## Example Workflows
+
+### Daily Operations
+
+```bash
+# Morning: Generate today's projections
+npx ts-node src/cli.ts generate --sport basketball --date today
+
+# Morning: Get top events
+npx ts-node src/cli.ts events --sport basketball --date today --limit 20
+
+# Next day: Evaluate yesterday's predictions
+npx ts-node src/cli.ts evaluate --date yesterday
+
+# Weekly: Review performance
+npx ts-node src/cli.ts summary --start 2024-01-01
+```
+
+### Integration with Slipsmith Admin
+
+The projection engine can feed into the main SlipSmith admin tool:
+
+1. Generate projections via API
+2. Get top events formatted as slip JSON
+3. Post to content feed via admin tool
+
+---
+
+## Disclaimer
+
+This tool is for educational and analytical purposes only. It does not provide betting advice, and past performance does not guarantee future results. Please gamble responsibly.
+
+---
+
+## License
+
+ISC
