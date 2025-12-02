@@ -70,10 +70,13 @@ export function buildEventId(
   direction: string,
   date: string
 ): string {
+  // Maximum length for player key in event ID
+  const MAX_PLAYER_KEY_LENGTH = 20;
+  
   // Normalize all components to lowercase and remove special characters
   const sportKey = sport.toLowerCase();
   const gameKey = gameId.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  const playerKey = player.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 20);
+  const playerKey = player.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, MAX_PLAYER_KEY_LENGTH);
   const marketKey = market.toLowerCase().replace(/[^a-z0-9]/g, '');
   const lineKey = line.toString().replace('.', '_');
   const directionKey = direction.toLowerCase();
@@ -96,11 +99,15 @@ export function formatProbability(probability: number): string {
  * Convert internal Event to SlipEvent format
  */
 export function convertToSlipEvent(event: Event, sport: string): SlipEvent {
+  // Use player name if available, otherwise team name, otherwise 'unknown'
+  const displayName = event.playerName ?? event.teamName ?? 'unknown';
+  const teamDisplay = event.teamName ?? '';
+  
   return {
     event_id: buildEventId(
       sport,
       event.gameId,
-      event.playerName ?? event.teamName ?? 'team',
+      displayName,
       event.market,
       event.line,
       event.direction,
@@ -108,8 +115,8 @@ export function convertToSlipEvent(event: Event, sport: string): SlipEvent {
     ),
     game_id: event.gameId,
     time: 'TBD', // Time info not always available
-    player: event.playerName ?? event.teamName ?? '',
-    team: event.teamName ?? '',
+    player: displayName,
+    team: teamDisplay,
     market: formatMarketDisplay(event.market),
     line: event.line,
     direction: event.direction,
