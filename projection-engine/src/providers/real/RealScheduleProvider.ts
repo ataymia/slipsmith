@@ -71,9 +71,9 @@ export class RealScheduleProvider implements ScheduleProvider {
       return [];
     }
     
-    // ESPN doesn't have esports - would need PandaScore
+    // ESPN doesn't have esports - esports data requires PandaScore or similar API
     if (mapping.sport === 'esports') {
-      console.warn(`Esports schedule requires PandaScore API (ESPORTS_API_KEY)`);
+      console.warn(`Esports schedule requires a dedicated esports API like PandaScore`);
       return [];
     }
     

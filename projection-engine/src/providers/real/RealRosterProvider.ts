@@ -90,6 +90,7 @@ export class RealRosterProvider implements RosterProvider {
         if (!boxscore) continue;
         
         const teams = (boxscore.teams as Record<string, unknown>[]) ?? [];
+        const boxscorePlayers = (boxscore.players as Record<string, unknown>[]) ?? [];
         const players: RosterPlayer[] = [];
         
         for (const teamData of teams) {
@@ -97,8 +98,7 @@ export class RealRosterProvider implements RosterProvider {
           const teamId = String(team?.id ?? '');
           const teamName = (team?.displayName as string) ?? '';
           
-          // Try to get roster from boxscore players if available
-          const boxscorePlayers = summaryResponse.data.boxscore?.players ?? [];
+          // Find the players for this team from boxscore
           const teamPlayers = boxscorePlayers.find((p: Record<string, unknown>) => 
             (p.team as Record<string, unknown>)?.id === team?.id
           );

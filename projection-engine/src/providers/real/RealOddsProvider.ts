@@ -70,9 +70,8 @@ export class RealOddsProvider implements OddsProvider {
     // Validate configuration
     if (!this.baseUrl || !this.apiKey) {
       throw new Error(
-        'RealOddsProvider: Missing required environment variables. ' +
-        'Set ODDS_API_BASE_URL and ODDS_API_KEY to use real data. ' +
-        'Or set USE_MOCK_DATA=true to use mock data.'
+        'RealOddsProvider: Missing required configuration. ' +
+        'Set ODDS_API_BASE_URL and ODDS_API_KEY environment variables.'
       );
     }
     

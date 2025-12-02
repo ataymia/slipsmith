@@ -207,7 +207,8 @@ export class SlipService {
       // =======================================================================
       const reliability = event.reliability ?? 0.5;
       const reliabilityFactor = 0.9 + (0.1 * reliability);
-      const effectiveProb = event.probability * reliabilityFactor;
+      // Clamp to 1.0 to maintain probability validity
+      const effectiveProb = Math.min(1.0, event.probability * reliabilityFactor);
       
       // Categorize by effective probability
       if (effectiveProb > GREEN_PROBABILITY_THRESHOLD) {
