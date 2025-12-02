@@ -332,7 +332,54 @@ projection-engine/
 - [Architecture](docs/ARCHITECTURE.md) - System design and projection methodology
 - [Learning and Evaluation](docs/LEARNING_AND_EVAL.md) - Self-learning system documentation
 - [AI Integration](docs/AI_INTEGRATION.md) - Using AI for reasoning and explanation
+- [Firebase Integration](docs/FIREBASE_INTEGRATION.md) - Firestore storage for projections, results, and slips
 - [Next Steps](docs/NEXT_STEPS_AND_HOOKS.md) - Roadmap and future enhancements
+
+---
+
+## Firebase Integration
+
+The projection engine integrates with the SlipSmith Firebase project for persistent storage of projections, results, slips, and reliability data.
+
+### Quick Setup
+
+1. **Set Environment Variables**:
+   ```bash
+   # Required
+   FIREBASE_PROJECT_ID=your-project-id
+   
+   # For Node.js (local development)
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+   
+   # For Cloudflare Workers
+   FIREBASE_API_KEY=your-web-api-key
+   ```
+
+2. **Initialize in Code**:
+   ```typescript
+   import { initializeFirebase, saveSlip } from './services/slipsmithFirebase';
+   
+   await initializeFirebase();
+   
+   // Save a slip to Firestore
+   await saveSlip({
+     slip_id: 'NBA_2025_12_01_VIP',
+     date: '2025-12-01',
+     sport: 'NBA',
+     tier: 'vip',
+     events: [...],
+   });
+   ```
+
+### Cloudflare Compatibility
+
+The Firebase module is designed to work on Cloudflare Pages/Workers:
+
+- **Browser**: Uses `window.db` from the main app's Firebase SDK
+- **Cloudflare Workers**: Uses Firestore REST API (no Admin SDK dependency)
+- **Node.js**: Uses Firebase Admin SDK when available
+
+See [Firebase Integration Guide](docs/FIREBASE_INTEGRATION.md) for full documentation.
 
 ---
 
