@@ -80,7 +80,7 @@ export class SlipSmithProviderFactory {
   private oddsProvider?: OddsProvider;
   
   constructor(config: SlipSmithProviderConfig = {}) {
-    this.useMockData = config.useMockData ?? true;
+    this.useMockData = config.useMockData ?? false;
     
     // Read configuration from environment if not provided
     this.realConfig = config.realProviderConfig ?? {

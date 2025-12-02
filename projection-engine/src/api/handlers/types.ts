@@ -103,15 +103,18 @@ export interface SummaryParams {
 
 /**
  * Check if mock mode is enabled
+ * 
+ * Mock mode is DISABLED by default for production use.
+ * Set USE_MOCK_DATA=true to enable mock data for testing/development.
  */
 export function isMockMode(env: EnvBindings): boolean {
-  // Default to true if USE_MOCK_DATA is not set or is empty
   const useMockData = env.USE_MOCK_DATA;
+  // Default to false (real APIs) if USE_MOCK_DATA is not set
   if (useMockData === undefined || useMockData === null || useMockData === '') {
-    return true;
+    return false;
   }
-  // Only return false if explicitly set to 'false'
-  return useMockData.toLowerCase() !== 'false';
+  // Only return true if explicitly set to 'true'
+  return useMockData.toLowerCase() === 'true';
 }
 
 /**

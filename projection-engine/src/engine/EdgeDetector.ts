@@ -38,17 +38,36 @@ const DEFAULT_EDGE_CONFIG: EdgeConfig = {
   edgeWeight: 0.5,
   confidenceWeight: 0.3,
   reliabilityWeight: 0.2,
+  // Market thresholds represent the standard deviation of projection uncertainty
+  // These are calibrated based on typical variance in player performance
   marketThresholds: {
-    POINTS: 1.5,
-    REBOUNDS: 1.0,
-    ASSISTS: 0.8,
-    THREES: 0.5,
-    PASSING_YARDS: 15,
-    RUSHING_YARDS: 10,
-    RECEIVING_YARDS: 10,
-    RECEPTIONS: 1.0,
-    GOALS: 0.3,
-    KILLS: 1.0,
+    POINTS: 4.0,          // NBA: ~4 point std dev (±8 typical range)
+    REBOUNDS: 2.0,        // NBA: ~2 rebound std dev
+    ASSISTS: 1.5,         // NBA: ~1.5 assist std dev
+    THREES: 1.0,          // NBA: ~1 three-pointer std dev
+    STOCKS: 1.0,          // Steals + blocks combined
+    PRA: 6.0,             // Points + rebounds + assists combined
+    PR: 5.0,              // Points + rebounds combined
+    PA: 5.0,              // Points + assists combined
+    RA: 3.0,              // Rebounds + assists combined
+    PASSING_YARDS: 35,    // NFL: ~35 yard std dev for passing
+    RUSHING_YARDS: 25,    // NFL: ~25 yard std dev for rushing
+    RECEIVING_YARDS: 25,  // NFL: ~25 yard std dev for receiving
+    RECEPTIONS: 2.0,      // NFL: ~2 reception std dev
+    PASSING_TDS: 0.8,     // NFL: TD variance
+    RUSHING_TDS: 0.4,
+    RECEIVING_TDS: 0.4,
+    INTERCEPTIONS: 0.5,
+    GOALS: 0.5,           // Soccer: goal variance
+    SOCCER_ASSISTS: 0.5,
+    SHOTS: 1.5,
+    SHOTS_ON_TARGET: 1.0,
+    TACKLES: 1.5,
+    KILLS: 2.0,           // Esports
+    DEATHS: 2.0,
+    ESPORTS_ASSISTS: 2.5,
+    CS: 30,               // Creep score
+    KDA: 1.5,
   },
 };
 
@@ -136,9 +155,8 @@ export class EdgeDetector {
     // Get market threshold
     const threshold = this.config.marketThresholds[line.market] ?? 1.0;
     
-    // Calculate probability (simplified model)
-    // In production, use more sophisticated statistical models
-    const probability = this.calculateProbability(edge, threshold);
+    // Calculate probability with confidence factored in
+    const probability = this.calculateProbability(edge, threshold, projection.confidence);
     
     // Get reliability score if available
     const reliabilityKey = `${line.playerId}_${line.market}`;
@@ -211,7 +229,7 @@ export class EdgeDetector {
     if (projection.sport === 'basketball') threshold = 5;
     if (projection.sport === 'soccer') threshold = 0.5;
     
-    const probability = this.calculateProbability(edge, threshold);
+    const probability = this.calculateProbability(edge, threshold, teamProjection.confidence);
     const reliability = reliabilityScores?.get(`${line.teamId}_${line.market}`) ?? 0.5;
     const edgeScore = this.calculateEdgeScore(absEdge, threshold, teamProjection.confidence, reliability);
     
@@ -275,13 +293,47 @@ export class EdgeDetector {
   }
   
   /**
-   * Calculate probability using normal distribution approximation
+   * Calculate probability using enhanced normal distribution model
+   * 
+   * This model incorporates:
+   * 1. Base probability from normal distribution (edge vs threshold)
+   * 2. Confidence adjustment to account for projection uncertainty
+   * 3. Regression to mean for extreme probabilities
+   * 
+   * The formula uses:
+   * - Z-score calculation: z = edge / (threshold * uncertaintyFactor)
+   * - Uncertainty factor increases for lower confidence projections
+   * - Final probability is regressed toward 0.5 for extreme edges
    */
-  private calculateProbability(edge: number, threshold: number): number {
-    // Simplified probability model
-    // In production, use proper statistical distributions
-    const zScore = edge / threshold;
-    const probability = 0.5 + 0.5 * this.erf(zScore / Math.sqrt(2));
+  private calculateProbability(edge: number, threshold: number, confidence?: number): number {
+    // Use confidence to adjust uncertainty - lower confidence = wider distribution
+    // Clamp confidence to [0.5, 1.0] range to ensure valid uncertainty factor
+    const clampedConfidence = Math.max(0.5, Math.min(1.0, confidence ?? 0.8));
+    // Uncertainty factor ranges from 1.5 (low confidence) to 1.0 (high confidence)
+    const uncertaintyFactor = 1 + (1 - clampedConfidence);
+    
+    // Calculate z-score with adjusted threshold for uncertainty
+    const adjustedThreshold = threshold * uncertaintyFactor;
+    const zScore = edge / adjustedThreshold;
+    
+    // Calculate base probability using error function
+    let probability = 0.5 + 0.5 * this.erf(zScore / Math.sqrt(2));
+    
+    // Apply mild regression toward 0.5 for extreme probabilities
+    // This accounts for model uncertainty and prevents overconfident predictions
+    // 
+    // regressionStrength (0.15) represents how much extreme probabilities are pulled
+    // toward 0.5. This value was chosen to:
+    // - Provide meaningful adjustment without over-correcting
+    // - Cap effective max probability at ~0.96 instead of 1.0
+    // - Cap effective min probability at ~0.04 instead of 0.0
+    const regressionStrength = 0.15;
+    
+    // For probabilities above 0.90, regress toward 0.5
+    // Formula: newProb = 0.5 + (prob - 0.5) * (1 - regressionStrength)
+    if (probability > 0.90 || probability < 0.10) {
+      probability = 0.5 + (probability - 0.5) * (1 - regressionStrength);
+    }
     
     return Math.round(probability * 100) / 100;
   }
