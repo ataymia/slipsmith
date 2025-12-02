@@ -274,7 +274,9 @@ async function initializeAdminSdk(): Promise<void> {
   } catch (error) {
     console.error('Failed to initialize Firebase Admin SDK:', error);
     console.log('Falling back to REST API mode');
-    firebaseConfig!.useRestApi = true;
+    if (firebaseConfig) {
+      firebaseConfig.useRestApi = true;
+    }
     firebaseInitialized = true;
   }
 }

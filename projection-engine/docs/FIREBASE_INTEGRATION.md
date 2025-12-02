@@ -544,6 +544,26 @@ service cloud.firestore {
 }
 ```
 
+### Service Account Authentication
+
+When using the Firebase Admin SDK with a service account, the SDK bypasses Firestore security rules entirely. The service account operates with full administrative access.
+
+**For Node.js Backend (Admin SDK)**:
+- Download service account from Firebase Console
+- Set `GOOGLE_APPLICATION_CREDENTIALS` environment variable
+- The Admin SDK automatically authenticates with full access
+
+**For Cloudflare Workers (REST API)**:
+- Use Firebase Authentication to create a custom token
+- Or use a Firebase API key with appropriate restrictions
+- Consider using Firebase App Check for additional security
+
+**Production Recommendations**:
+1. Store service account keys securely (never commit to git)
+2. Use environment variables or secret management
+3. Restrict API keys by HTTP referrer or IP
+4. Enable Firebase App Check for production
+
 ---
 
 ## Troubleshooting
